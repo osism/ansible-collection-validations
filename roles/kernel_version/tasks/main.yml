@@ -1,0 +1,7 @@
+---
+# source https://github.com/openstack/tripleo-validations/blob/master/roles/check_kernel_version/tasks/main.yml
+
+- name: Check kernel version
+  fail:
+    msg: "{{ kernel_version_expected }} does not match configured kernel_version {{ kernel_version_fact }}"
+  when: kernel_version_expected not in kernel_version_fact

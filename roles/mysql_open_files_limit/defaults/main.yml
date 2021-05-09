@@ -1,0 +1,2 @@
+---
+mysql_open_files_limit_min: 16384

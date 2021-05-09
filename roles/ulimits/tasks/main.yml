@@ -1,0 +1,30 @@
+---
+# source: https://github.com/openstack/tripleo-validations/blob/master/roles/controller_ulimits/tasks/main.yml
+
+- name: Get nofiles limit
+  become: true
+  # NOTE: `ulimit` is a shell builtin so we have to invoke it like this:
+  command: bash -c "ulimit -n"
+  register: nofilesval
+  changed_when: false
+
+- name: Check nofiles limit
+  fail:
+    msg: >
+      nofiles is set to {{ nofilesval.stdout }}.  It should be at least
+      {{ ulimits_nofiles_min }} or higher, depending on available resources.
+  failed_when: "nofilesval.stdout|int < ulimits_nofiles_min"
+
+- name: Get nproc limit
+  become: true
+  # NOTE: `ulimit` is a shell builtin so we have to invoke it like this:
+  command: bash -c "ulimit -u"
+  register: nprocval
+  changed_when: false
+
+- name: Check nproc limit
+  fail:
+    msg: >
+      nproc is set to {{ nprocval.stdout }}.  It should be at least
+      {{ ulimits_nproc_min }} or higher, depending on available resources.
+  failed_when: "nprocval.stdout|int < ulimits_nproc_min"

@@ -4,13 +4,13 @@ name: validations
 version: 0.1.0
 readme: README.md
 authors:
-  - OSISM community <info@osism.de> (https://github.com/osism/ansible-collection-validations/graphs/contributors)
+  - OSISM community <info@osism.tech> (https://github.com/osism/ansible-collection-validations/graphs/contributors)
 description: OSISM validations roles
 license_file: LICENSE
 tags:
   - system
 dependencies: {}
 repository: https://github.com/osism/ansible-collection-validations.git
-documentation: https://docs.osism.de
-homepage: https://osism.de
+documentation: https://docs.osism.tech
+homepage: https://osism.tech
 issues: https://github.com/osism/ansible-collection-validations/issues

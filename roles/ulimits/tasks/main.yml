@@ -4,12 +4,12 @@
 - name: Get nofiles limit
   become: true
   # NOTE: `ulimit` is a shell builtin so we have to invoke it like this:
-  command: bash -c "ulimit -n"
+  ansible.builtin.command: bash -c "ulimit -n"
   register: nofilesval
   changed_when: false
 
 - name: Check nofiles limit
-  fail:
+  ansible.builtin.fail:
     msg: >
       nofiles is set to {{ nofilesval.stdout }}.  It should be at least
       {{ ulimits_nofiles_min }} or higher, depending on available resources.
@@ -18,12 +18,12 @@
 - name: Get nproc limit
   become: true
   # NOTE: `ulimit` is a shell builtin so we have to invoke it like this:
-  command: bash -c "ulimit -u"
+  ansible.builtin.command: bash -c "ulimit -u"
   register: nprocval
   changed_when: false
 
 - name: Check nproc limit
-  fail:
+  ansible.builtin.fail:
     msg: >
       nproc is set to {{ nprocval.stdout }}.  It should be at least
       {{ ulimits_nproc_min }} or higher, depending on available resources.

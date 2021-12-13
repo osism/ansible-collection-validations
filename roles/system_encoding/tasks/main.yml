@@ -2,21 +2,22 @@
 # source: https://github.com/openstack/tripleo-validations/blob/master/roles/system_encoding/tasks/main.yml
 
 - name: Get local lang
-  set_fact:
+  ansible.builtin.set_fact:
     locale_lang: "{{ (lookup('env', 'LANG')) }}"
   when:
     system_encoding_locale is not defined
 
 - name: Set value to check
-  set_fact:
+  ansible.builtin.set_fact:
     locale_to_check: >-
       {%- if system_encoding_locale is defined -%}
         {{ (system_encoding_locale | lower).split('.')[-1] }}
       {%- else -%}
         {{ (locale_lang | lower).split('.')[-1] }}
       {%- endif -%}
+
 - name: Verify the local
-  fail:
+  ansible.builtin.fail:
     msg: >-
       The local must be unicode ({{ system_encoding_wanted|join(', ') }}).
       Got {{ locale_to_check }}

@@ -2,12 +2,12 @@
 # source: https://github.com/openstack/tripleo-validations/blob/master/roles/mysql_open_files_limit/tasks/main.yml
 
 - name: Set container_cli fact from the inventory
-  set_fact:
+  ansible.builtin.set_fact:
     container_cli: "{{ hostvars[inventory_hostname].container_cli |default('docker', true) }}"
 
 - name: Get the open_files_limit value
   become: true
-  shell: >-
+  ansible.builtin.shell: >-
     "{{ container_cli }}" exec -u root
     $("{{ container_cli }}" ps -q --filter "name=mariadb$" | head -1)
     /bin/bash -c 'ulimit -n'
@@ -15,7 +15,7 @@
   register: mysqld_open_files_limit
 
 - name: Test the open-files-limit value
-  fail:
+  ansible.builtin.fail:
     msg: >
       The open_files_limit option for mysql must be higher than
       {{ mysql_open_files_limit_min }}. Right now it's {{ mysqld_open_files_limit.stdout }}.

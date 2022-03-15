@@ -1,11 +1,11 @@
 ---
 namespace: osism
 name: validations
-version: 999.0.0
+version: {{ tag | regex_replace('^v', '') }}
 readme: README.md
 authors:
-  - OSISM community <info@osism.tech>
-description: OSISM validations roles
+  - OSISM community <info@osism.de>
+description: OSISM validation roles
 license_file: LICENSE
 tags:
   - osism

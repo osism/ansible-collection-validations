@@ -6,13 +6,13 @@
     container_cli: "{{ hostvars[inventory_hostname].container_cli |default('docker', true) }}"
 
 - name: Get failed containers for podman
-  changed_when: false
   become: true
   ansible.builtin.command: >
     {{ container_cli }}
     {% raw %}
     ps -a --filter 'status=exited' --format '{{ .Names }} {{ .Status }}'
     {% endraw %}
+  changed_when: false
   register: failed_containers
 
 - name: Fail if we detect failed containers

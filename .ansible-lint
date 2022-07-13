@@ -1,16 +1,14 @@
 ---
 exclude_paths:
   - .github/
-  - playbooks/awx-bootstrap.yml
-  - playbooks/awx-schedules.yml
-  - playbooks/awx-smart-inventories.yml
-  - playbooks/awx-workflows.yml
-  - playbooks/manager-import-inventory.yml
+use_default_rules: true
+rulesdir:
+  - ./.ansible-lint-rules/
+warn_list:
+  - risky-shell-pipe
 skip_list:
-  - 301
-  - 302
-  - 303
-  - 305
-  - 306
-  - 504
-  - 602
+  - yaml
+  - parser-error  # AnsibleParserError.
+  - var-spacing  # Variables should have spaces before and after: {{ var_name }}.
+  - schema
+  - fqcn-builtins

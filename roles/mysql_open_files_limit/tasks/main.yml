@@ -8,6 +8,7 @@
 - name: Get the open_files_limit value
   become: true
   ansible.builtin.shell: >-
+    set -o pipefail &&
     "{{ container_cli }}" exec -u root
     $("{{ container_cli }}" ps -q --filter "name=mariadb$" | head -1)
     /bin/bash -c 'ulimit -n'

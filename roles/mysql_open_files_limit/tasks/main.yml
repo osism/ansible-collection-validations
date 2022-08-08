@@ -7,11 +7,13 @@
 
 - name: Get the open_files_limit value
   become: true
-  ansible.builtin.shell: >-
-    set -o pipefail &&
-    "{{ container_cli }}" exec -u root
-    $("{{ container_cli }}" ps -q --filter "name=mariadb$" | head -1)
-    /bin/bash -c 'ulimit -n'
+  ansible.builtin.shell: |
+      set -o pipefail
+      "{{ container_cli }}" exec -u root
+      $("{{ container_cli }}" ps -q --filter "name=mariadb$" | head -1)
+      /bin/bash -c 'ulimit -n'
+  args:
+    executable: /bin/bash
   changed_when: false
   register: mysqld_open_files_limit
 
@@ -20,4 +22,4 @@
     msg: >
       The open_files_limit option for mysql must be higher than
       {{ mysql_open_files_limit_min }}. Right now it's {{ mysqld_open_files_limit.stdout }}.
-  failed_when: "mysqld_open_files_limit.stdout|int < mysql_open_files_limit_min"
+  when: "mysqld_open_files_limit.stdout|int < mysql_open_files_limit_min"

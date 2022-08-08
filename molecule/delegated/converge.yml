@@ -1,0 +1,39 @@
+---
+- name: Converge
+  hosts: all
+  tasks:
+    - name: Include required variables
+      ansible.builtin.include_vars:
+        file: "vars/{{ molecule_role }}.yml"
+
+    - name: "Include container_status role"
+      ansible.builtin.include_role:
+        name: "container_status"
+
+    - block:
+        - name: "Include kernel_version role"
+          ansible.builtin.include_role:
+            name: "kernel_version"
+          register: expected_failure
+      rescue:
+        - assert:
+            that:
+              - expected_failure is defined
+
+    - block:
+        - name: "Include mysql_open_files_limit role"
+          ansible.builtin.include_role:
+            name: "mysql_open_files_limit"
+          register: expected_failure
+      rescue:
+        - assert:
+            that:
+              - expected_failure is defined
+
+    - name: "Include system_encoding role"
+      ansible.builtin.include_role:
+        name: "system_encoding"
+
+    - name: "Include ulimits role"
+      ansible.builtin.include_role:
+        name: "ulimits"

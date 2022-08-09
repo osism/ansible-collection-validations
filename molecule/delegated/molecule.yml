@@ -1,21 +1,15 @@
 ---
 dependency:
   name: shell
-  command: ansible-galaxy collection install -v -f -r molecule/default/collections.yml -p ~/.ansible/collections
+  command: ansible-galaxy collection install -v -f -r molecule/delegated/collections.yml -p ~/.ansible/collections
 driver:
-  name: docker
+  name: delegated
+  options:
+    managed: false
+    ansible_connection_options:
+      ansible_connection: local
 platforms:
   - name: "molecule-${ANSIBLE_ROLE}"
-    image: "${DOCKER_IMAGE}"
-    volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:ro
-    tmpfs:
-      - /tmp
-      - /run
-    privileged: true
-    command: /lib/systemd/systemd
-    capabilities:
-      - SYS_ADMIN
 provisioner:
   name: ansible
   env:
@@ -27,7 +21,7 @@ provisioner:
         ansible_python_interpreter: /usr/bin/python3
         molecule_role: "${ANSIBLE_ROLE}"
 scenario:
-  name: default
+  name: delegated
   test_sequence:
     - dependency
     - create

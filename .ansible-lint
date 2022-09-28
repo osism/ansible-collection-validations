@@ -4,9 +4,6 @@ exclude_paths:
 use_default_rules: true
 rulesdir:
   - ./.ansible-lint-rules/
-warn_list:
-  - name[missing]
-  - osism-fqcn
 skip_list:
   - yaml
   - parser-error  # AnsibleParserError.

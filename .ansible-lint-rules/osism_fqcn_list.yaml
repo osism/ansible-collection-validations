@@ -465,3 +465,7 @@ openstack.cloud:
   - openstack.cloud.volume_snapshot
   - openstack.cloud.volume_snapshot_info
   - openstack.cloud.openstack
+
+# To make linter happy
+other:
+  - block/always/rescue

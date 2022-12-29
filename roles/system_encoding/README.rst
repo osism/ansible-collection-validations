@@ -1,9 +1,9 @@
-This ansible role configures the system using UTF-8 for encoding Unicode.
+This role checks whether a certain encoding is set on a system.
 
 **Role Variable**
 
-.. zuul:rolevar:: system_encoding_wanted
-   :default: - 'utf8'
-             - 'utf-8'
+.. zuul:rolevar:: system_encoding_expected
+   :default: - utf8
+             - utf-8
 
-Which encoding system should used.
+What encoding is expected.

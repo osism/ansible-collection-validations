@@ -16,9 +16,9 @@
         {{ (locale_lang | lower).split('.')[-1] }}
       {%- endif -%}
 
-- name: Verify the local
+- name: Verify the locale
   ansible.builtin.fail:
     msg: >-
-      The local must be unicode ({{ system_encoding_wanted|join(', ') }}).
+      The locale must be ({{ system_encoding_expected|join(', ') }}).
       Got {{ locale_to_check }}
-  failed_when: locale_to_check not in system_encoding_wanted
+  failed_when: locale_to_check not in system_encoding_expected

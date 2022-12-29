@@ -1,3 +1,2 @@
 ---
-kernel_version_fact: "{{ ansible_facts.kernel }}"
 kernel_version_expected: "5.4"

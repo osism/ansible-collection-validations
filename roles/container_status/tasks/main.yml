@@ -5,7 +5,7 @@
   ansible.builtin.set_fact:
     container_cli: "{{ hostvars[inventory_hostname].container_cli |default('docker', true) }}"
 
-- name: Get failed containers for podman
+- name: Get failed containers
   become: true
   ansible.builtin.command: >
     {{ container_cli }}

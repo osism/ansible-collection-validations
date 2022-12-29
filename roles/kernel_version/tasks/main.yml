@@ -3,5 +3,5 @@
 
 - name: Check kernel version
   ansible.builtin.fail:
-    msg: "{{ kernel_version_expected }} does not match configured kernel_version {{ kernel_version_fact }}"
-  when: kernel_version_expected not in kernel_version_fact
+    msg: "{{ kernel_version_expected }} does not match configured kernel_version {{ ansible_facts.kernel }}"
+  when: kernel_version_expected not in ansible_facts.kernel

@@ -1,0 +1,18 @@
+---
+- name: Include prepare tasks
+  ansible.builtin.include_tasks: prepare.yml
+
+- name: Include bootstrap tasks
+  ansible.builtin.include_tasks: bootstrap.yml
+  run_once: true
+  when: refstack_bootstrap|bool
+
+- name: Include install tasks
+  ansible.builtin.include_tasks: install.yml
+  when: refstack_install|bool
+
+- name: Run refstack
+  debug:
+    msg: |
+      Everything is prepared. At the moment, Refstack itself is not yet running here.
+      Please run /opt/refstack/test.sh now. The tests will then take some time.

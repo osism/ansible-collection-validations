@@ -1,40 +1,42 @@
+# It is intentionally taken refstack_domain_id at user_domain_name.
+# It is intentionally taken refstack_domain_id at project_domain_name.
 ---
 - username: refstack-0
-  user_domain_name: {{ refstack_domain }}
+  user_domain_name: {{ refstack_domain_id }}
   tenant_name: refstack-0
-  project_domain_name: {{ refstack_domain }}
+  project_domain_name: {{ refstack_domain_id }}
   password: {{ refstack_user_password }}
   roles:
     - member
 
 - username: refstack-1
-  user_domain_name: {{ refstack_domain }}
+  user_domain_name: {{ refstack_domain_id }}
   tenant_name: refstack-1
-  project_domain_name: {{ refstack_domain }}
+  project_domain_name: {{ refstack_domain_id }}
   password: {{ refstack_user_password }}
   roles:
     - member
 
 - username: refstack-2
-  user_domain_name: {{ refstack_domain }}
+  user_domain_name: {{ refstack_domain_id }}
   tenant_name: refstack-2
-  project_domain_name: {{ refstack_domain }}
+  project_domain_name: {{ refstack_domain_id }}
   password: {{ refstack_user_password }}
   roles:
     - member
 
 - username: refstack-3
-  user_domain_name: {{ refstack_domain }}
+  user_domain_name: {{ refstack_domain_id }}
   tenant_name: refstack-3
-  project_domain_name: {{ refstack_domain }}
+  project_domain_name: {{ refstack_domain_id }}
   password: {{ refstack_user_password }}
   roles:
     - member
 
 - username: refstack-4
-  user_domain_name: {{ refstack_domain }}
+  user_domain_name: {{ refstack_domain_id }}
   tenant_name: refstack-4
-  project_domain_name: {{ refstack_domain }}
+  project_domain_name: {{ refstack_domain_id }}
   password: {{ refstack_admin_password }}
   roles:
     - member
@@ -44,9 +46,9 @@
     - reseller_admin
 
 - username: {{ refstack_admin }}
-  user_domain_name: {{ refstack_domain }}
+  user_domain_name: {{ refstack_domain_id }}
   tenant_name: {{ refstack_admin_project }}
-  project_domain_name: {{ refstack_domain }}
+  project_domain_name: {{ refstack_domain_id }}
   password: {{ refstack_superadmin_password }}
   types:
     - admin

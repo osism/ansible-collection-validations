@@ -1,3 +1,4 @@
 ---
 - name: Run prepare.sh script
   ansible.builtin.command: /opt/refstack/prepare.sh
+  delegate_to: "{{ refstack_manager }}"

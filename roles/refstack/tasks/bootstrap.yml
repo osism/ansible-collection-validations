@@ -1,0 +1,200 @@
+---
+- name: Create refstack projects
+  openstack.cloud.project:
+    cloud: "{{ refstack_cloud }}"
+    state: present
+    name: "{{ item }}"
+    domain_id: "{{ refstack_domain_id }}"
+  loop: "{{ refstack_users }}"
+
+- name: Create refstack users
+  openstack.cloud.identity_user:
+    cloud: "{{ refstack_cloud }}"
+    state: present
+    name: "{{ item }}"
+    password: password
+    domain: "{{ refstack_domain }}"
+    default_project: "{{ item }}"
+  loop: "{{ refstack_users }}"
+  no_log: true
+
+- name: Add admin role to required users
+  openstack.cloud.role_assignment:
+    cloud: "{{ refstack_cloud }}"
+    state: present
+    user: "{{ item }}"
+    role: admin
+    project: "{{ refstack_project }}"
+  loop: "{{ refstack_admin_users }}"
+
+- name: Add member roles to refstack users
+  openstack.cloud.role_assignment:
+    cloud: "{{ refstack_cloud }}"
+    state: present
+    user: "{{ item }}"
+    role: member
+    project: "{{ item }}"
+  loop: "{{ refstack_users }}"
+
+- name: Create refstack keypairs
+  openstack.cloud.keypair:
+    cloud: "{{ item }}"
+    state: present
+    name: "{{ refstack_keypair }}"
+    public_key_file: /ansible/secrets/id_rsa.operator.pub
+  loop: "{{ refstack_users }}"
+
+- name: Create refstack networks
+  openstack.cloud.network:
+    cloud: "{{ refstack_cloud }}"
+    project: "{{ item }}"
+    state: present
+    name: "{{ refstack_network_name }}"
+  loop: "{{ refstack_users }}"
+
+- name: Create refstack subnets
+  openstack.cloud.subnet:
+    cloud: "{{ refstack_cloud }}"
+    project: "{{ item }}"
+    state: present
+    name: "subnet-{{ refstack_network_name }}"
+    network_name: "{{ refstack_network_name }}"
+    cidr: "192.168.{{ 200 + index }}.0/24"
+  loop: "{{ refstack_users }}"
+  loop_control:
+    index_var: index
+
+- name: Create refstack router
+  openstack.cloud.router:
+    cloud: "{{ refstack_cloud }}"
+    project: "{{ item }}"
+    state: present
+    name: "router-{{ item }}"
+    network: "{{ refstack_public_network }}"
+    interfaces:
+      - "subnet-{{ refstack_network_name }}"
+  loop: "{{ refstack_users }}"
+
+- name: Create refstack flavors
+  openstack.cloud.compute_flavor:
+    cloud: "{{ refstack_cloud }}"
+    state: present
+    name: "{{ item }}"
+    ram: 256
+    vcpus: 1
+    disk: 1
+    ephemeral: 0
+    extra_specs:
+      "hw_rng:allowed": "True"
+  loop:
+    - refstack-0
+    - refstack-1
+  register: flavors
+
+- name: Download image
+  ansible.builtin.get_url:
+    url: "{{ refstack_image_url }}"
+    dest: /tmp/image.img
+    mode: 0644
+
+- name: Upload images
+  openstack.cloud.image:
+    cloud: "{{ refstack_cloud }}"
+    state: present
+    name: "{{ item }}"
+    is_public: true
+    container_format: bare
+    disk_format: qcow2
+    filename: /tmp/image.img
+    properties:
+      cpu_arch: x86_64
+      hw_rng_model: virtio
+  loop:
+    - refstack-0
+    - refstack-1
+  register: images
+
+- name: Get public network
+  openstack.cloud.networks_info:
+    cloud: "{{ refstack_cloud }}"
+    name: "{{ refstack_public_network }}"
+  register: public
+
+- name: Set image_ref in heat_plugin in tempest.conf
+  community.general.ini_file:
+    path: "{{ refstack_workdir }}/tempest.conf"
+    section: heat_plugin
+    option: image_ref
+    value: "{{ images.results.0.id }}"
+    mode: 0644
+  delegate_to: "{{ refstack_manager }}"
+
+- name: Set minimal_image_ref in heat_plugin in tempest.conf
+  community.general.ini_file:
+    path: "{{ refstack_workdir }}/tempest.conf"
+    section: heat_plugin
+    option: minimal_image_ref
+    value: "{{ images.results.1.id }}"
+    mode: 0644
+  delegate_to: "{{ refstack_manager }}"
+
+- name: Set image_ref in compute in tempest.conf
+  community.general.ini_file:
+    path: "{{ refstack_workdir }}/tempest.conf"
+    section: compute
+    option: image_ref
+    value: "{{ images.results.0.id }}"
+    mode: 0644
+  delegate_to: "{{ refstack_manager }}"
+
+- name: Set image_ref_alt in compute in tempest.conf
+  community.general.ini_file:
+    path: "{{ refstack_workdir }}/tempest.conf"
+    section: compute
+    option: image_ref_alt
+    value: "{{ images.results.1.id }}"
+    mode: 0644
+  delegate_to: "{{ refstack_manager }}"
+
+- name: Set flavor_ref in compute in tempest.conf
+  community.general.ini_file:
+    path: "{{ refstack_workdir }}/tempest.conf"
+    section: compute
+    option: flavor_ref
+    value: "{{ flavors.results.0.id }}"
+    mode: 0644
+  delegate_to: "{{ refstack_manager }}"
+
+- name: Set flavor_ref_alt in compute in tempest.conf
+  community.general.ini_file:
+    path: "{{ refstack_workdir }}/tempest.conf"
+    section: compute
+    option: flavor_ref_alt
+    value: "{{ flavors.results.1.id }}"
+    mode: 0644
+  delegate_to: "{{ refstack_manager }}"
+
+- name: Set public_network_id in network in tempest.conf
+  community.general.ini_file:
+    path: "{{ refstack_workdir }}/tempest.conf"
+    section: network
+    option: public_network_id
+    value: "{{ public.openstack_networks.0.id }}"
+    mode: 0644
+  delegate_to: "{{ refstack_manager }}"
+
+# - name: Check swift endpoint
+#   ansible.builtin.command: "openstack --os-cloud {{ refstack_cloud }} endpoint list --service swift"
+#   register: result
+#   changed_when: false
+#   delegate_to: "{{ refstack_manager }}"
+
+# - name: Set swift in tempest.conf
+#   community.general.ini_file:
+#     path: "{{ refstack_workdir }}/tempest.conf"
+#     section: service_available
+#     option: swift
+#     value: "true"
+#     mode: 0644
+#   delegate_to: "{{ refstack_manager }}"
+#   when: "'object-store' in result.stdout"

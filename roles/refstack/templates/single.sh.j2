@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+source {{ refstack_workdir }}/client/.venv/bin/activate
+{{ refstack_workdir }}/client/refstack-client test -c {{ refstack_workdir }}/tempest.conf -v -r osism -- --regex $1

@@ -53,10 +53,10 @@ auth_url = {{ refstack_keystone_endpoint }}
 endpoint_type = public
 region = {{ refstack_region }}
 
-user_domain_id = "{{ refstack_domain_id }}"
-user_domain_name = "{{ refstack_domain }}"
-project_domain_id = "{{ refstack_domain_id }}"
-project_domain_name = "{{ refstack_domain }}"
+user_domain_id = {{ refstack_domain_id }}
+user_domain_name = {{ refstack_domain }}
+project_domain_id = {{ refstack_domain_id }}
+project_domain_name = {{ refstack_domain }}
 
 project_name = refstack-0
 username = refstack-0

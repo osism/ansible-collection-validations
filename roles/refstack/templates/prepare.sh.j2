@@ -18,7 +18,7 @@ INSTALL_LOG={{ refstack_workdir }}/refstack-install-$(date +%Y-%m-%d).log
 
 if [[ ! -e {{ refstack_workdir }}/client ]]; then
     git clone https://opendev.org/osf/refstack-client.git {{ refstack_workdir }}/client >>$INSTALL_LOG 2>&1
-if
+fi
 
 if [[ ! -e {{ refstack_workdir }}/client/.venv ]]; then
     pushd {{ refstack_workdir }}/client >>$INSTALL_LOG 2>&1

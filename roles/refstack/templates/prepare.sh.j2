@@ -25,13 +25,8 @@ if [[ ! -e {{ refstack_workdir }}/client/.venv ]]; then
     ./setup_env -t $TEMPEST_VERSION >>$INSTALL_LOG 2>&1
     popd >>$INSTALL_LOG 2>&1
 
-    # NOTE: Tempest with jsonschema > 4.0.0 does not work, therefore explicit downgrade to < 4.0.0
-    #       AttributeError: module jsonschema has no attribute compat
-    source {{ refstack_workdir }}/client/.tempest/.venv/bin/activate
-    pip3 install jsonschema==3.2.0 >>$INSTALL_LOG 2>&1
-
-    pip3 install heat-tempest-plugin==1.4.0 >>$INSTALL_LOG 2>&1
-    pip3 install designate-tempest-plugin==0.12.0  >>$INSTALL_LOG 2>&1
+    pip3 install heat-tempest-plugin==1.7.0 >>$INSTALL_LOG 2>&1
+    pip3 install designate-tempest-plugin==0.16.0  >>$INSTALL_LOG 2>&1
 fi
 
 GUIDELINE=${1:-{{ refstack_guideline }}}

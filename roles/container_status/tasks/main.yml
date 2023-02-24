@@ -5,8 +5,7 @@
   ansible.builtin.set_fact:
     container_cli: "{{ hostvars[inventory_hostname].container_cli |default('docker', true) }}"
 
-- name: Get failed containers
-  become: true
+- become: true
   ansible.builtin.command: >
     {{ container_cli }}
     {% raw %}
@@ -14,6 +13,7 @@
     {% endraw %}
   changed_when: false
   register: failed_containers
+  name: Get failed containers
 
 - name: Fail if we detect failed containers
   ansible.builtin.fail:

@@ -12,7 +12,7 @@
   when: refstack_install|bool
 
 - name: Run refstack
-  debug:
+  ansible.builtin.debug:
     msg: |
       Everything is prepared. At the moment, Refstack itself is not yet running here.
       Please run /opt/refstack/test.sh now. The tests will then take some time.

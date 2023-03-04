@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
 
+RUN_LOG=/opt/refstack/refstack-run-$(date +%Y-%m-%d-%H-%M).log
+
 source {{ refstack_workdir }}/client/.venv/bin/activate
-{{ refstack_workdir }}/client/refstack-client test -c {{ refstack_workdir }}/tempest.conf -v -r osism -- --regex $1
+{{ refstack_workdir }}/client/refstack-client test -c {{ refstack_workdir }}/tempest.conf -v -r osism -- --regex $1  | tee -a $RUN_LOG

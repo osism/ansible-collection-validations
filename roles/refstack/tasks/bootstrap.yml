@@ -75,43 +75,19 @@
       - "subnet-{{ refstack_network_name }}"
   loop: "{{ refstack_users }}"
 
-- name: Create refstack flavors
-  openstack.cloud.compute_flavor:
+- name: Get refstack flavors
+  openstack.cloud.compute_flavor_info:
     cloud: "{{ refstack_cloud }}"
-    state: present
     name: "{{ item }}"
-    ram: 256
-    vcpus: 1
-    disk: 1
-    ephemeral: 0
-    extra_specs:
-      "hw_rng:allowed": "True"
-  loop:
-    - refstack-0
-    - refstack-1
+    limit: 1
+  loop: "{{ refstack_flavors }}"
   register: flavors
 
-- name: Download image
-  ansible.builtin.get_url:
-    url: "{{ refstack_image_url }}"
-    dest: /tmp/image.img
-    mode: 0644
-
-- name: Upload images
-  openstack.cloud.image:
+- name: Get images
+  openstack.cloud.image_info:
     cloud: "{{ refstack_cloud }}"
-    state: present
-    name: "{{ item }}"
-    is_public: true
-    container_format: bare
-    disk_format: qcow2
-    filename: /tmp/image.img
-    properties:
-      cpu_arch: x86_64
-      hw_rng_model: virtio
-  loop:
-    - refstack-0
-    - refstack-1
+    image: "{{ item }}"
+  loop: "{{ refstack_images }}"
   register: images
 
 - name: Get public network
@@ -125,7 +101,7 @@
     path: "{{ refstack_workdir }}/tempest.conf"
     section: heat_plugin
     option: image_ref
-    value: "{{ images.results.0.id }}"
+    value: "{{ images.results.0.image.id }}"
     mode: 0644
   delegate_to: "{{ refstack_manager }}"
 
@@ -134,7 +110,7 @@
     path: "{{ refstack_workdir }}/tempest.conf"
     section: heat_plugin
     option: minimal_image_ref
-    value: "{{ images.results.1.id }}"
+    value: "{{ images.results.1.image.id }}"
     mode: 0644
   delegate_to: "{{ refstack_manager }}"
 
@@ -143,7 +119,7 @@
     path: "{{ refstack_workdir }}/tempest.conf"
     section: compute
     option: image_ref
-    value: "{{ images.results.0.id }}"
+    value: "{{ images.results.0.image.id }}"
     mode: 0644
   delegate_to: "{{ refstack_manager }}"
 
@@ -152,7 +128,7 @@
     path: "{{ refstack_workdir }}/tempest.conf"
     section: compute
     option: image_ref_alt
-    value: "{{ images.results.1.id }}"
+    value: "{{ images.results.1.image.id }}"
     mode: 0644
   delegate_to: "{{ refstack_manager }}"
 
@@ -161,7 +137,7 @@
     path: "{{ refstack_workdir }}/tempest.conf"
     section: compute
     option: flavor_ref
-    value: "{{ flavors.results.0.id }}"
+    value: "{{ flavors.results.0.openstack_flavors.0.id }}"
     mode: 0644
   delegate_to: "{{ refstack_manager }}"
 
@@ -170,7 +146,7 @@
     path: "{{ refstack_workdir }}/tempest.conf"
     section: compute
     option: flavor_ref_alt
-    value: "{{ flavors.results.1.id }}"
+    value: "{{ flavors.results.1.openstack_flavors.0.id }}"
     mode: 0644
   delegate_to: "{{ refstack_manager }}"
 

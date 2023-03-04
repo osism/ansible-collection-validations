@@ -29,7 +29,8 @@ if [[ ! -e {{ refstack_workdir }}/client/.venv ]]; then
     popd 2>&1 | tee -a $INSTALL_LOG
 
     source /opt/refstack/client/.venv/bin/activate
-    pip3 install designate-tempest-plugin==0.16.0  2>&1 | tee -a $INSTALL_LOG
+    pip3 install barbican-tempest-plugin==2.0.0 2>&1 | tee -a $INSTALL_LOG
+    pip3 install designate-tempest-plugin==0.16.0 2>&1 | tee -a $INSTALL_LOG
     pip3 install heat-tempest-plugin==1.7.0 2>&1 | tee -a $INSTALL_LOG
     pip3 install octavia-tempest-plugin==2.2.0 2>&1 | tee -a $INSTALL_LOG
 fi

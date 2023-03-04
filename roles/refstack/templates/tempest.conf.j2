@@ -22,6 +22,9 @@ v3_endpoint_type = public
 [compute-feature-enabled]
 resize = true
 
+[network-feature-enabled]
+port_security = true
+
 [validation]
 run_validation = true
 image_ssh_user = {{ refstack_image_ssh_user }}
@@ -66,8 +69,8 @@ admin_project_name = refstack-4
 admin_username = refstack-4
 admin_password = {{ refstack_admin_password }}
 
-instance_type = refstack-0
-minimal_instance_type = refstack-1
+instance_type = "{{ refstack_flavors[0] }}"
+minimal_instance_type = "{{ refstack_flavors[1] }}"
 image_ref = XXX
 minimal_image_ref = XXX
 # keypair_name = refstack

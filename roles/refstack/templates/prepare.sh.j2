@@ -4,33 +4,34 @@ set -e
 set -x
 
 TEMPEST_VERSION={{ refstack_tempest_version }}
-INSTALL_LOG={{ refstack_workdir }}/refstack-install-$(date +%Y-%m-%d).log
+INSTALL_LOG={{ refstack_workdir }}/refstack-install-$(date +%Y-%m-%d-%H-%M).log
+
+GUIDELINE=${1:-{{ refstack_guideline }}}
+TARGET=${2:-{{ refstack_target }}}
 
 # NOTE: create RGW user accounts
 # for username in refstack-0 refstack-1 refstack-2 refstack-3 refstack-4; do
-#     openstack --os-cloud $username container list >>$INSTALL_LOG 2>&1
+#     openstack --os-cloud $username container list 2>&1 | tee -a $INSTALL_LOG
 # done
 
 # NOTE: enable quota management on RGW user accounts
 # for username in $(radosgw-admin user list | grep \\$ | awk -F\" '{ print $2 }'); do
-#     radosgw-admin quota enable --uid "$username" --quota-scope=user >>$INSTALL_LOG 2>&1
+#     radosgw-admin quota enable --uid "$username" --quota-scope=user 2>&1 | tee -a $INSTALL_LOG
 # done
 
 if [[ ! -e {{ refstack_workdir }}/client ]]; then
-    git clone https://opendev.org/osf/refstack-client.git {{ refstack_workdir }}/client >>$INSTALL_LOG 2>&1
+    git clone https://opendev.org/osf/refstack-client.git {{ refstack_workdir }}/client 2>&1 | tee -a $INSTALL_LOG
 fi
 
 if [[ ! -e {{ refstack_workdir }}/client/.venv ]]; then
-    pushd {{ refstack_workdir }}/client >>$INSTALL_LOG 2>&1
-    ./setup_env -t $TEMPEST_VERSION >>$INSTALL_LOG 2>&1
-    popd >>$INSTALL_LOG 2>&1
+    pushd {{ refstack_workdir }}/client 2>&1 | tee -a $INSTALL_LOG
+    ./setup_env -t $TEMPEST_VERSION 2>&1 | tee -a $INSTALL_LOG
+    popd 2>&1 | tee -a $INSTALL_LOG
 
-    pip3 install heat-tempest-plugin==1.7.0 >>$INSTALL_LOG 2>&1
-    pip3 install designate-tempest-plugin==0.16.0  >>$INSTALL_LOG 2>&1
+    source /opt/refstack/client/.venv/bin/activate
+    pip3 install heat-tempest-plugin==1.7.0 2>&1 | tee -a $INSTALL_LOG
+    pip3 install designate-tempest-plugin==0.16.0  2>&1 | tee -a $INSTALL_LOG
 fi
-
-GUIDELINE=${1:-{{ refstack_guideline }}}
-TARGET=${2:-{{ refstack_target }}}
 
 # platform or compute
 

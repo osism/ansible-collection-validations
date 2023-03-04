@@ -1,6 +1,6 @@
 ---
 refstack_bootstrap: true
-refstack_install: true
+refstack_install: false
 
 # This is the version used in setup_env of refstack-client
 refstack_tempest_version: "31.1.0"
@@ -21,7 +21,15 @@ refstack_users:
   - refstack-3
   - refstack-4
 
-refstack_image_url: https://github.com/cirros-dev/cirros/releases/download/0.6.1/cirros-0.6.1-x86_64-disk.img
+refstack_flavors:
+  - SCS-1V:4:10
+  - SCS-2V:4:10
+  # - SCS-1V-4-10
+  # - SCS-2V-4-10
+
+refstack_images:
+  - "Ubuntu 22.04 Minimal"
+  - "Cirros 0.6.1"
 
 refstack_superadmin_password: password
 refstack_admin_password: password

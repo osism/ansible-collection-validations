@@ -1,6 +1,6 @@
 ---
 refstack_bootstrap: true
-refstack_install: false
+refstack_install: true
 
 # This is the version used in setup_env of refstack-client
 refstack_tempest_version: "31.1.0"

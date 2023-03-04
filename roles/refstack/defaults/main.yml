@@ -56,8 +56,10 @@ refstack_volume_device_name: vdb
 refstack_image_ssh_user: cirros
 
 refstack_scripts:
+  - list.sh
   - prepare.sh
   - run.sh
+  - sign.sh
   - single.sh
   - test.sh
   - upload.sh

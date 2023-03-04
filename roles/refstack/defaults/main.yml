@@ -28,7 +28,7 @@ refstack_flavors:
   # - SCS-2V-4-10
 
 refstack_images:
-  - "Ubuntu 22.04 Minimal"
+  - "Cirros 0.6.0"
   - "Cirros 0.6.1"
 
 refstack_superadmin_password: password

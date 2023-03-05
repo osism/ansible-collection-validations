@@ -20,7 +20,7 @@ TARGET=${2:-{{ refstack_target }}}
 # done
 
 if [[ ! -e {{ refstack_workdir }}/client ]]; then
-    git clone https://opendev.org/osf/refstack-client.git {{ refstack_workdir }}/client 2>&1 | tee -a $INSTALL_LOG
+    git clone https://opendev.org/openinfra/refstack-client {{ refstack_workdir }}/client 2>&1 | tee -a $INSTALL_LOG
 fi
 
 if [[ ! -e {{ refstack_workdir }}/client/.venv ]]; then

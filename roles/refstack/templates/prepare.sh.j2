@@ -54,6 +54,8 @@ curl -s "https://refstack.openstack.org/v1/guidelines/orchestration.${GUIDELINE}
 #    >> {{ refstack_workdir }}/test-list.txt
 
 # NOTE: inject testbed CA into the virtual python environments
-for fp in $(find {{ refstack_workdir }}/client -name cacert.pem); do
-    cat /opt/configuration/environments/kolla/certificates/ca/testbed.crt >> $fp
-done
+if [[ $(hostname) == "testbed-manager" ]]; then
+    for fp in $(find {{ refstack_workdir }}/client -name cacert.pem); do
+        cat /opt/configuration/environments/kolla/certificates/ca/testbed.crt >> $fp
+    done
+fi

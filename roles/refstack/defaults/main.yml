@@ -28,11 +28,9 @@ refstack_flavors:
   # - SCS-2V-4-10
 
 refstack_images:
-  - "Cirros 0.6.0"
   - "Cirros 0.6.1"
+  - "Ubuntu 22.04 Minimal"
 
-refstack_superadmin_password: password
-refstack_admin_password: password
 refstack_user_password: password
 
 refstack_region: RegionOne
@@ -67,5 +65,7 @@ refstack_scripts:
 refstack_domain: Default
 refstack_domain_id: default
 
+# this is an existing admoun account
 refstack_admin: admin
 refstack_admin_project: admin
+refstack_admin_password: password

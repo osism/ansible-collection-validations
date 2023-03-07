@@ -12,7 +12,7 @@
     cloud: "{{ refstack_cloud }}"
     state: present
     name: "{{ item }}"
-    password: password
+    password: "{{ refstack_user_password }}"
     domain: "{{ refstack_domain }}"
     default_project: "{{ item }}"
   loop: "{{ refstack_users }}"
@@ -36,12 +36,28 @@
     project: "{{ item }}"
   loop: "{{ refstack_users }}"
 
+- name: Retrieve the public key from /ansible/secrets/id_rsa.operator
+  ansible.builtin.command: ssh-keygen -y -f /ansible/secrets/id_rsa.operator
+  changed_when: false
+  register: result
+
+# NOTE: We use auth here because the keypair must be created with
+# the user who will use it later. So we don't have to create entries
+# in /opt/configuration/environments/clouds.yml in advance it is more
+# handy this way.
+
 - name: Create refstack keypairs
   openstack.cloud.keypair:
-    cloud: "{{ item }}"
+    auth:
+      auth_url: "{{ refstack_keystone_endpoint }}"
+      username: "{{ item }}"
+      user_domain_name: "{{ refstack_domain }}"
+      password: "{{ refstack_user_password }}"
+      project_name: "{{ item }}"
+      project_domain_name: "{{ refstack_domain }}"
     state: present
     name: "{{ refstack_keypair }}"
-    public_key_file: /ansible/secrets/id_rsa.operator.pub
+    public_key: "{{ result.stdout }}"
   loop: "{{ refstack_users }}"
 
 - name: Create refstack networks

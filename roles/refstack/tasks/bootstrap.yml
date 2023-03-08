@@ -55,6 +55,7 @@
       password: "{{ refstack_user_password }}"
       project_name: "{{ item }}"
       project_domain_name: "{{ refstack_domain }}"
+    ca_cert: "{{ refstack_ca_cert }}"
     state: present
     name: "{{ refstack_keypair }}"
     public_key: "{{ result.stdout }}"

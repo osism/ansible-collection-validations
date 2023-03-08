@@ -81,13 +81,19 @@
   loop_control:
     index_var: index
 
-- name: Create refstack router
+- name: Get public network
+  openstack.cloud.networks_info:
+    cloud: "{{ refstack_cloud }}"
+    name: "{{ refstack_public_network }}"
+  register: public
+
+- name: Create refstack routers
   openstack.cloud.router:
     cloud: "{{ refstack_cloud }}"
     project: "{{ item }}"
     state: present
     name: "router-{{ item }}"
-    network: "{{ refstack_public_network }}"
+    network: "{{ public.networks.0.id }}"
     interfaces:
       - "subnet-{{ refstack_network_name }}"
   loop: "{{ refstack_users }}"
@@ -107,18 +113,12 @@
   loop: "{{ refstack_images }}"
   register: images
 
-- name: Get public network
-  openstack.cloud.networks_info:
-    cloud: "{{ refstack_cloud }}"
-    name: "{{ refstack_public_network }}"
-  register: public
-
 - name: Set image_ref in heat_plugin in tempest.conf
   community.general.ini_file:
     path: "{{ refstack_workdir }}/tempest.conf"
     section: heat_plugin
     option: image_ref
-    value: "{{ images.results.0.image.id }}"
+    value: "{{ images.results.0.images.0.id }}"
     mode: 0644
   delegate_to: "{{ refstack_manager }}"
 
@@ -127,7 +127,7 @@
     path: "{{ refstack_workdir }}/tempest.conf"
     section: heat_plugin
     option: minimal_image_ref
-    value: "{{ images.results.1.image.id }}"
+    value: "{{ images.results.1.images.0.id }}"
     mode: 0644
   delegate_to: "{{ refstack_manager }}"
 
@@ -136,7 +136,7 @@
     path: "{{ refstack_workdir }}/tempest.conf"
     section: compute
     option: image_ref
-    value: "{{ images.results.0.image.id }}"
+    value: "{{ images.results.0.images.0.id }}"
     mode: 0644
   delegate_to: "{{ refstack_manager }}"
 
@@ -145,7 +145,7 @@
     path: "{{ refstack_workdir }}/tempest.conf"
     section: compute
     option: image_ref_alt
-    value: "{{ images.results.1.image.id }}"
+    value: "{{ images.results.1.images.0.id }}"
     mode: 0644
   delegate_to: "{{ refstack_manager }}"
 
@@ -154,7 +154,7 @@
     path: "{{ refstack_workdir }}/tempest.conf"
     section: compute
     option: flavor_ref
-    value: "{{ flavors.results.0.openstack_flavors.0.id }}"
+    value: "{{ flavors.results.0.flavors.0.id }}"
     mode: 0644
   delegate_to: "{{ refstack_manager }}"
 
@@ -163,7 +163,7 @@
     path: "{{ refstack_workdir }}/tempest.conf"
     section: compute
     option: flavor_ref_alt
-    value: "{{ flavors.results.1.openstack_flavors.0.id }}"
+    value: "{{ flavors.results.1.flavors.0.id }}"
     mode: 0644
   delegate_to: "{{ refstack_manager }}"
 
@@ -172,7 +172,7 @@
     path: "{{ refstack_workdir }}/tempest.conf"
     section: network
     option: public_network_id
-    value: "{{ public.openstack_networks.0.id }}"
+    value: "{{ public.networks.0.id }}"
     mode: 0644
   delegate_to: "{{ refstack_manager }}"
 

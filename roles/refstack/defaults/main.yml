@@ -24,10 +24,8 @@ refstack_users:
   - refstack-4
 
 refstack_flavors:
-  - SCS-1V:4:10
-  - SCS-2V:4:10
-  # - SCS-1V-4-10
-  # - SCS-2V-4-10
+  - SCS-1V-4-10
+  - SCS-2V-4-10
 
 refstack_images:
   - "Cirros 0.6.1"

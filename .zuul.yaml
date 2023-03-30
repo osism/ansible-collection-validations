@@ -11,3 +11,8 @@
         - build-sphinx-docs
         - yamllint
         - ansible-lint
+    periodic-daily:
+      jobs:
+        - yamllint
+        - ansible-lint
+

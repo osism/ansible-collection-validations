@@ -3,7 +3,7 @@
 
 - name: Set container_cli fact from the inventory
   ansible.builtin.set_fact:
-    container_cli: "{{ hostvars[inventory_hostname].container_cli |default('docker', true) }}"
+    container_cli: "{{ hostvars[inventory_hostname].container_cli | default('docker', true) }}"
 
 - name: Get the open_files_limit value
   become: true

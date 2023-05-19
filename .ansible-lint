@@ -10,7 +10,6 @@ skip_list:
   - name[template]
   - parser-error
   - var-naming[no-role-prefix]
-  - var-spacing
   - yaml
 # DO NOT DELETE THE WARNLIST! It is required for our custom rules!
 # If this isn't there our custom rules will only through a warning and wont generate a failure!:

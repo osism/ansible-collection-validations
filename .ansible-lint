@@ -5,12 +5,13 @@ use_default_rules: true
 rulesdir:
   - ./.ansible-lint-rules/
 skip_list:
-  - yaml
-  - parser-error  # AnsibleParserError.
-  - var-spacing  # Variables should have spaces before and after: {{ var_name }}.
   - fqcn-builtins
-  - name[template]
   - galaxy[no-changelog]
+  - name[template]
+  - parser-error
+  - var-naming[no-role-prefix]
+  - var-spacing
+  - yaml
 # DO NOT DELETE THE WARNLIST! It is required for our custom rules!
 # If this isn't there our custom rules will only through a warning and wont generate a failure!:
 warn_list:

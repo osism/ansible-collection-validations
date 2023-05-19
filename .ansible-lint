@@ -7,7 +7,6 @@ rulesdir:
 skip_list:
   - galaxy[no-changelog]
   - name[template]
-  - parser-error
   - var-naming[no-role-prefix]
   - yaml
 # DO NOT DELETE THE WARNLIST! It is required for our custom rules!

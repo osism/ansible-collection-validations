@@ -6,7 +6,7 @@ refstack_install: true
 refstack_tempest_version: "31.1.0"
 
 refstack_target: compute
-refstack_guideline: "2021.11"
+refstack_guideline: "2022.11"
 
 refstack_keystone_endpoint: https://api.testbed.osism.xyz:5000/v3
 refstack_ca_cert: /etc/ssl/certs/ca-certificates.crt

@@ -35,7 +35,14 @@ fi
 
 # platform or compute
 
-curl -s "https://refstack.openstack.org/api/v1/guidelines/$GUIDELINE/tests?target=$TARGET&type=required,advisory&alias=true&flag=true" \
+# tempest.api.network.test_extensions.ExtensionsTestJSON.test_list_show_extensions
+#
+# Among other things, this test checks whether the l3_agent_scheduler extension is activated.
+# This is not available because we use OVN as SDN. The test is tagged as advisory and
+# will be removed accordingly.
+
+curl -s "https://refstack.openstack.org/api/v1/guidelines/$GUIDELINE/tests?target=$TARGET&type=required,advisory&alias=true&flag=true" | \
+    grep -v tempest.api.network.test_extensions.ExtensionsTestJSON.test_list_show_extensions \
     > {{ refstack_workdir }}/test-list.txt
 
 # dns

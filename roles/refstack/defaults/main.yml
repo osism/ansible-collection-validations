@@ -65,7 +65,7 @@ refstack_scripts:
 refstack_domain: Default
 refstack_domain_id: default
 
-# this is an existing admoun account
+# this is an existing admin account
 refstack_admin: admin
 refstack_admin_project: admin
 refstack_admin_password: password

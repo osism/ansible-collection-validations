@@ -1,9 +1,9 @@
-This role checks the current kernel version and compares it
-with the given kernel version.
+This role compaes the current kernel version  with the
+expected kernel version.
 
 **Role Variables**
 
 .. zuul:rolevar:: kernel_version_expected
-   :default: 5.4
+   :default: 6.2
 
-What kernel version is expected.
+Kernel version that is expected.

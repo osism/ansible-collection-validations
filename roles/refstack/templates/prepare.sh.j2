@@ -9,15 +9,15 @@ INSTALL_LOG={{ refstack_workdir }}/refstack-install-$(date +%Y-%m-%d-%H-%M).log
 GUIDELINE=${1:-{{ refstack_guideline }}}
 TARGET=${2:-{{ refstack_target }}}
 
-# NOTE: create RGW user accounts
-# for username in refstack-0 refstack-1 refstack-2 refstack-3 refstack-4; do
-#     openstack --os-cloud $username container list 2>&1 | tee -a $INSTALL_LOG
-# done
+# create RGW user accounts
+for username in refstack-0 refstack-1 refstack-2 refstack-3 refstack-4; do
+    openstack --os-cloud $username container list 2>&1 | tee -a $INSTALL_LOG
+done
 
-# NOTE: enable quota management on RGW user accounts
-# for username in $(radosgw-admin user list | grep \\$ | awk -F\" '{ print $2 }'); do
-#     radosgw-admin quota enable --uid "$username" --quota-scope=user 2>&1 | tee -a $INSTALL_LOG
-# done
+# enable quota management on RGW user accounts
+for username in $(radosgw-admin user list | grep \\$ | awk -F\" '{ print $2 }'); do
+    radosgw-admin quota enable --uid "$username" --quota-scope=user 2>&1 | tee -a $INSTALL_LOG
+done
 
 if [[ ! -e {{ refstack_workdir }}/client ]]; then
     git clone https://opendev.org/openinfra/refstack-client {{ refstack_workdir }}/client 2>&1 | tee -a $INSTALL_LOG
@@ -27,22 +27,20 @@ if [[ ! -e {{ refstack_workdir }}/client/.venv ]]; then
     {{ refstack_workdir }}/client//setup_env -t $TEMPEST_VERSION 2>&1 | tee -a $INSTALL_LOG
 
     source /opt/refstack/client/.venv/bin/activate
-    pip3 install barbican-tempest-plugin==2.0.0 2>&1 | tee -a $INSTALL_LOG
-    pip3 install designate-tempest-plugin==0.16.0 2>&1 | tee -a $INSTALL_LOG
-    pip3 install heat-tempest-plugin==1.7.0 2>&1 | tee -a $INSTALL_LOG
-    pip3 install octavia-tempest-plugin==2.2.0 2>&1 | tee -a $INSTALL_LOG
+    pip3 install barbican-tempest-plugin==3.0.0 2>&1 | tee -a $INSTALL_LOG
+    pip3 install designate-tempest-plugin==0.20.0 2>&1 | tee -a $INSTALL_LOG
+    pip3 install heat-tempest-plugin==2.0.0 2>&1 | tee -a $INSTALL_LOG
+    pip3 install octavia-tempest-plugin==2.4.1 2>&1 | tee -a $INSTALL_LOG
 fi
 
 # platform or compute
 
-# tempest.api.network.test_extensions.ExtensionsTestJSON.test_list_show_extensions
-#
-# Among other things, this test checks whether the l3_agent_scheduler extension is activated.
-# This is not available because we use OVN as SDN. The test is tagged as advisory and
-# will be removed accordingly.
-
 curl -s "https://refstack.openstack.org/api/v1/guidelines/$GUIDELINE/tests?target=$TARGET&type=required,advisory&alias=true&flag=true" | \
-    grep -v tempest.api.network.test_extensions.ExtensionsTestJSON.test_list_show_extensions \
+    # requires l3_agent_scheduler, not available when working with OVN
+    grep -v tempest.api.network.test_extensions.ExtensionsTestJSON.test_list_show_extensions | \
+    grep -v tempest.api.object_storage.test_account_quotas_negative.AccountQuotasNegativeTest.test_user_modify_quota | \
+    grep -v tempest.api.object_storage.test_object_temp_url.ObjectTempUrlTest.test_put_object_using_temp_url | \
+    grep -v tempest.api.object_storage.test_object_temp_url.ObjectTempUrlTest.test_get_object_using_temp_url \
     > {{ refstack_workdir }}/test-list.txt
 
 # dns

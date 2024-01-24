@@ -2,10 +2,9 @@
 refstack_bootstrap: true
 refstack_install: true
 
-# This is the version used in setup_env of refstack-client
-refstack_tempest_version: "31.1.0"
+refstack_tempest_version: "36.0.0"
 
-refstack_target: compute
+refstack_target: platform
 refstack_guideline: "2022.11"
 
 refstack_keystone_endpoint: https://api.testbed.osism.xyz:5000/v3

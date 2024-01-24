@@ -1,6 +1,9 @@
 [auth]
 test_accounts_file = {{ refstack_workdir }}/accounts.yaml
-use_dynamic_credentials = false
+use_dynamic_credentials = true
+admin_username = {{ refstack_admin }}
+admin_project_name = {{ refstack_admin_project }}
+admin_password = {{ refstack_admin_password }}
 
 [oslo_concurrency]
 lock_path = /tmp/tempest

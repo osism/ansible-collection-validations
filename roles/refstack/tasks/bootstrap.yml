@@ -1,5 +1,5 @@
 ---
-- name: Create refstack projects
+- name: Create refstack projects for users
   openstack.cloud.project:
     cloud: "{{ refstack_cloud }}"
     state: present
@@ -27,7 +27,7 @@
     project: "{{ refstack_project }}"
   loop: "{{ refstack_admin_users }}"
 
-- name: Add member roles to refstack users
+- name: Add member role to refstack users
   openstack.cloud.role_assignment:
     cloud: "{{ refstack_cloud }}"
     state: present
@@ -176,18 +176,18 @@
     mode: 0644
   delegate_to: "{{ refstack_manager }}"
 
-# - name: Check swift endpoint
-#   ansible.builtin.command: "openstack --os-cloud {{ refstack_cloud }} endpoint list --service swift"
-#   register: result
-#   changed_when: false
-#   delegate_to: "{{ refstack_manager }}"
+- name: Check swift endpoint
+  ansible.builtin.command: "openstack --os-cloud {{ refstack_cloud }} endpoint list --service swift"
+  register: result
+  changed_when: false
+  delegate_to: "{{ refstack_manager }}"
 
-# - name: Set swift in tempest.conf
-#   community.general.ini_file:
-#     path: "{{ refstack_workdir }}/tempest.conf"
-#     section: service_available
-#     option: swift
-#     value: "true"
-#     mode: 0644
-#   delegate_to: "{{ refstack_manager }}"
-#   when: "'object-store' in result.stdout"
+- name: Set swift in tempest.conf
+  community.general.ini_file:
+    path: "{{ refstack_workdir }}/tempest.conf"
+    section: service_available
+    option: swift
+    value: "true"
+    mode: 0644
+  delegate_to: "{{ refstack_manager }}"
+  when: "'object-store' in result.stdout"

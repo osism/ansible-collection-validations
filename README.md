@@ -1,6 +1,6 @@
 # Ansible collection osism.validations
 
-Documentation: https://osism.github.io/docs/guides/configuration-guides/validations/
+Documentation: https://osism.tech/docs/guides/configuration-guides/validations/
 
 The following Ansible roles are included in this collection.
 

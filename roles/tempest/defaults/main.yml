@@ -1,0 +1,114 @@
+---
+tempest_runtime_group: 'manager'
+tempest_share_volume: 'manager_share'
+tempest_share_mount: '/share'
+tempest_workspace_name: 'osism-validations-tempest'
+tempest_container_tag: 'test'
+tempest_container_image: 'osism-validations-tempest'
+tempest_container_image_full: "{{ tempest_container_image }}:{{ tempest_container_tag }}"
+tempest_container_name: "{{ tempest_workspace_name }}"
+
+tempest_include_regex: '^tempest\.scenario\..*$|^barbican_tempest_plugin\.tests\.scenario.*$|^designate_tempest_plugin\.tests\.scenario\..*$|^octavia_tempest_plugin\.tests\.scenario\.v2\..*$'
+tempest_exclude_regex: '^tempest\.scenario\.test_server_volume_attachment\.TestServerVolumeAttachScenarioOldVersion\.test_old_versions_reject.*$|^tempest\.scenario\.test_server_volume_attachment\.TestServerVolumeAttachmentScenario\.test_server_detach_rules.*$|^barbican_tempest_plugin\.tests\.scenario\.test_image_signing\.ImageSigningTest\.test_signed_image_upload_boot_failure.*$'
+
+tempest_concurrency: 1
+
+# auth
+tempest_admin_username: 'admin'
+tempest_admin_password: 'password'
+tempest_admin_project_name: 'admin'
+tempest_admin_domain_name: 'Default'
+tempest_roles:
+  - 'creator'
+
+# identity
+tempest_uri_v3: 'https://api.testbed.osism.xyz:5000/v3'
+tempest_region: 'RegionOne'
+tempest_ca_cert: '/etc/ssl/certs/ca-certificates.crt'
+
+# dashboard
+tempest_dashboard_url: 'https://api.testbed.osism.xyz'
+
+# compute
+tempest_image_ref: 'Cirros 0.6.2'
+tempest_image_ref_alt: 'Cirros 0.6.1'
+
+# create flavors or discover existing flavors
+# according to the given specs in `tempest_flavors`
+tempest_create_flavors: true
+tempest_flavor:
+  name: 'osism-validation-tempest-1'
+  vcpus: 1
+  ram: 1024
+  disk: 1
+tempest_flavor_alt:
+  name: 'osism-validation-tempest-2'
+  vcpus: 2
+  ram: 2048
+  disk: 2
+
+tempest_volume_device_name: 'sdb'
+tempest_resize: true
+tempest_compute_build_timeout: 600
+tempest_min_compute_nodes: 3
+tempest_attach_encrypted_volumes: false
+tempest_shelve_migrate: true
+
+# dns
+tempest_nameservers:
+  - 192.168.16.10
+  - 192.168.16.11
+  - 192.168.16.12
+
+# network
+tempest_port_security: true
+tempest_ipv6_subnet_attributes: true
+tempest_floating_ip_network: 'public'
+tempest_network_build_timeout: 600
+
+# service_available
+tempest_enable_barbican: true
+tempest_enable_cinder: true
+tempest_enable_designate: true
+tempest_enable_glance: true
+tempest_enable_horizon: true
+tempest_enable_neutron: true
+tempest_enable_nova: true
+tempest_enable_octavia: true
+tempest_enable_swift: true
+
+# image
+tempest_image_build_timeout: 600
+
+# loadbalancer
+tempest_loadbalancer_provider: 'ovn'
+tempest_loadbalancer_enabled_provider_drivers:
+  - 'amphora:Amphora provider'
+  - 'ovn:OVN provider'
+tempest_loadblancer_not_implemented_is_error: false  # ovn provider does not implement all features
+
+# object-storage
+tempest_container_sync_timeout: 1200
+tempest_object_build_timeout: 20
+
+# scenario
+tempest_dhcp_client: 'dhcpcd'
+# tempest_img_file:
+tempest_img_properties: 'hw_disk_bus:scsi,hw_rng_model:virtio,hw_scsi_model:virtio-scsi'
+
+# service-clients
+tempest_http_timeout: 300
+
+# validation
+tempest_ping_timeout: 240
+tempest_connect_timeout: 120
+tempest_ssh_timeout: 600
+tempest_image_ssh_user: 'cirros'
+
+# volume
+tempest_volume_build_timeout: 600
+tempest_backend_names:
+  - 'rbd-volumes'
+tempest_volume_type: '__DEFAULT__'
+tempest_storage_protocol: 'ceph'
+tempest_volume_size: 1

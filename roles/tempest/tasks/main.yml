@@ -1,0 +1,123 @@
+---
+- name: Create tempest workdir
+  ansible.builtin.file:
+    path: "{{ tempest_workdir }}"
+    state: directory
+    mode: '0750'
+    owner: dragon
+    group: dragon
+
+- name: Init tempest
+  ansible.builtin.command:
+    argv:
+      - tempest
+      - init
+      - --name
+      - osism-validation-tempest
+      - "{{ tempest_workdir }}"
+    creates: "{{ tempest_workdir }}/.stestr.conf"
+
+- name: Resolve image IDs
+  openstack.cloud.image_info:
+    auth_type: password
+    auth:
+      auth_url: "{{ tempest_identity_endpoint }}"
+      username: "{{ tempest_admin_username }}"
+      password: "{{ tempest_admin_password }}"
+      project_name: "{{ tempest_admin_project_name }}"
+      user_domain_name: "{{ tempest_admin_domain_name }}"
+      project_domain_name: "{{ tempest_admin_domain_name }}"
+    ca_cert: /etc/ssl/certs/ca-certificates.crt
+    name: "{{ item }}"
+  loop: "{{ tempest_images }}"
+  register: _images
+  when: tempest_enable_nova | bool
+
+- name: Resolve flavor IDs
+  openstack.cloud.compute_flavor_info:
+    auth_type: password
+    auth:
+      auth_url: "{{ tempest_identity_endpoint }}"
+      username: "{{ tempest_admin_username }}"
+      password: "{{ tempest_admin_password }}"
+      project_name: "{{ tempest_admin_project_name }}"
+      user_domain_name: "{{ tempest_admin_domain_name }}"
+      project_domain_name: "{{ tempest_admin_domain_name }}"
+    ca_cert: /etc/ssl/certs/ca-certificates.crt
+    name: "{{ item }}"
+  loop: "{{ tempest_flavors }}"
+  register: _flavors
+  when: tempest_enable_nova | bool
+
+- name: Resolve floating network ID
+  openstack.cloud.networks_info:
+    auth_type: password
+    auth:
+      auth_url: "{{ tempest_identity_endpoint }}"
+      username: "{{ tempest_admin_username }}"
+      password: "{{ tempest_admin_password }}"
+      project_name: "{{ tempest_admin_project_name }}"
+      user_domain_name: "{{ tempest_admin_domain_name }}"
+      project_domain_name: "{{ tempest_admin_domain_name }}"
+    ca_cert: /etc/ssl/certs/ca-certificates.crt
+    name: "{{ tempest_floating_ip_network }}"
+  register: _floating_networks
+  when: tempest_enable_neutron | bool
+
+- name: Copy tempest.conf file
+  vars:
+    image_ref: "{{ _images.results | map(attribute='images') | first | map(attribute='id') | first }}"
+    image_ref_alt: "{{ _images.results | map(attribute='images') | last | map(attribute='id') | first }}"
+    flavor_ref: "{{ _flavors.results | map(attribute='flavors') | first | map(attribute='id') | first }}"
+    flavor_ref_alt: "{{ _flavors.results | map(attribute='flavors') | last | map(attribute='id') | first }}"
+    floating_ip_network_id: "{{ _floating_networks.networks | selectattr('is_router_external', 'truthy', 'convert_bool=True') | map(attribute='id') | first }}"
+  ansible.builtin.template:
+    src: tempest.conf.j2
+    dest: "{{ tempest_workdir }}/etc/tempest.conf"
+    owner: dragon
+    group: dragon
+    mode: '0640'
+
+- block:
+    - name: Run tempest
+      vars:
+        _tempest_run_base:
+          - tempest
+          - run
+          - --workspace
+          - osism-validation-tempest
+        tempest_run_args: >-
+          {{
+            [['--concurrency', tempest_concurrency] if tempest_concurrency > 0 else [--serial]] | flatten
+            +
+            ['--regex'] | product(tempest_include_regex) | flatten
+            +
+            ['--exclude-regex'] | product(tempest_exclude_regex) | flatten
+          }}
+      ansible.builtin.command:
+        argv: "{{ _tempest_run_base + tempest_run_args }}"
+      register: _tempest_run
+    - name: Show result
+      ansible.builtin.debug:
+        msg: "{{ _tempest_run.stdout }}"
+    - name: Show slowest tests
+      ansible.builtin.command:
+        chdir: "{{ tempest_workdir }}"
+        argv:
+          - stestr
+          - slowest
+      register: _stestr_slowest
+    - name: Show slowest tests
+      ansible.builtin.debug:
+        msg: "{{ _stestr_slowest.stdout }}"
+  rescue:
+    - name: Show failing tests
+      ansible.builtin.command:
+        chdir: "{{ tempest_workdir }}"
+        argv:
+          - stestr
+          - failing
+      register: _stestr_failing
+    - name: Show failing tests
+      ansible.builtin.debug:
+        msg: "{{ _stestr_failing.stdout }}"

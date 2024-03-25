@@ -1,0 +1,39 @@
+---
+tempest_workdir: /ansible/tempest
+
+tempest_admin_username: admin
+tempest_admin_password: password
+tempest_admin_project_name: admin
+tempest_admin_domain_name: Default
+
+tempest_identity_endpoint: https://api.testbed.osism.xyz:5000/v3
+tempest_identity_region: RegionOne
+
+tempest_dashboard_url: https://api.testbed.osism.xyz
+tempest_flavors:
+  - SCS-1V-2
+  - SCS-2V-4
+
+tempest_images:
+  - "Cirros 0.6.2"
+  - "Ubuntu 22.04 Minimal"
+
+tempest_floating_ip_network: public
+
+
+tempest_enable_cinder: true
+tempest_enable_glance: true
+tempest_enable_heat: true
+tempest_enable_neutron: true
+tempest_enable_nova: true
+tempest_enable_swift: false
+
+tempest_volume_device_name: vdb
+tempest_image_ssh_user: cirros
+
+tempest_include_regex:
+  - '^tempest\.scenario\..*$'
+
+tempest_exclude_regex: []
+
+tempest_concurrency: 5

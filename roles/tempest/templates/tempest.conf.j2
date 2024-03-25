@@ -1,0 +1,68 @@
+[DEFAULT]
+log_dir = {{ tempest_workdir }}/logs
+log_file = tempest.log
+
+resource_name_prefix = osism-validation-tempest
+
+[oslo_concurrency]
+lock_path = {{ tempest_workdir }}/tempest_lock
+
+[auth]
+use_dynamic_credentials = true
+admin_username = {{ tempest_admin_username }}
+admin_password = {{ tempest_admin_password }}
+admin_project_name = {{ tempest_admin_project_name }}
+admin_domain_name = {{ tempest_admin_domain_name }}
+
+[service_available]
+cinder = {{ tempest_enable_cinder }}
+glance = {{ tempest_enable_glance }}
+heat = {{ tempest_enable_heat }}
+neutron = {{ tempest_enable_neutron }}
+nova = {{ tempest_enable_nova }}
+swift = {{ tempest_enable_swift }}
+
+[identity]
+auth_version = v3
+region = {{ tempest_identity_region }}
+uri_v3 = {{ tempest_identity_endpoint }}
+v3_endpoint_type = public
+
+[compute]
+image_ref = {{ image_ref }}
+image_ref_alt = {{ image_ref_alt }}
+
+flavor_ref = {{ flavor_ref }}
+flavor_ref_alt = {{ flavor_ref_alt }}
+
+min_microversion = "2.2"
+max_microversion = "latest"
+
+volume_device_name = {{ tempest_volume_device_name }}
+volume_backed_live_migration = true
+
+[compute-feature-enabled]
+resize = true
+
+[dashboard]
+dashboard_url = {{ tempest_dashboard_url }}
+
+[network]
+floating_ip_network_id: {{ floating_ip_network_id }}
+
+[network-feature-enabled]
+port_security = true
+
+[object-storage]
+operator_role = admin
+reseller_admin_role = admin
+
+[validation]
+image_ssh_user = {{ tempest_image_ssh_user }}
+
+[volume]
+
+[volume-feature-enabled]
+multi_backend = true
+extend_attached_volume = true
+extend_attached_encrypted_volume = true

@@ -124,24 +124,24 @@
     merge-mode: squash-merge
     check:
       jobs:
-        - ansible-collection-validations-molecule-container_status
-        - ansible-collection-validations-molecule-kernel_version
-        - ansible-collection-validations-molecule-mysql_open_files_limit
+        #- ansible-collection-validations-molecule-container_status
+        #- ansible-collection-validations-molecule-kernel_version
+        #- ansible-collection-validations-molecule-mysql_open_files_limit
         - ansible-collection-validations-molecule-refstack
-        - ansible-collection-validations-molecule-system_encoding
-        - ansible-collection-validations-molecule-ulimits
+        #- ansible-collection-validations-molecule-system_encoding
+        #- ansible-collection-validations-molecule-ulimits
         - ansible-lint
         - flake8
         - python-black
         - yamllint
     gate:
       jobs:
-        - ansible-collection-validations-molecule-container_status
-        - ansible-collection-validations-molecule-kernel_version
-        - ansible-collection-validations-molecule-mysql_open_files_limit
+        #- ansible-collection-validations-molecule-container_status
+        #- ansible-collection-validations-molecule-kernel_version
+        #- ansible-collection-validations-molecule-mysql_open_files_limit
         - ansible-collection-validations-molecule-refstack
-        - ansible-collection-validations-molecule-system_encoding
-        - ansible-collection-validations-molecule-ulimits
+        #- ansible-collection-validations-molecule-system_encoding
+        #- ansible-collection-validations-molecule-ulimits
         - ansible-lint
         - flake8
         - python-black

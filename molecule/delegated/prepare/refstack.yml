@@ -1,0 +1,35 @@
+---
+- name: Install Python development packages on CentOS
+  become: true
+  ansible.builtin.dnf:
+    name: python3.11-devel
+    state: present
+  when: ansible_distribution == "CentOS"
+
+- name: Install python3-pip
+  become: true
+  ansible.builtin.package:
+    name: python3-pip
+    state: present
+
+#- name: Install openstacksdk
+#  become: true
+#  ansible.builtin.pip:
+#    name: openstacksdk
+#    state: present
+#    executable: pip3
+
+- name: Install openstacksdk on Ubuntu/Debian
+  apt:
+    name: python3-openstacksdk
+    state: present
+    update_cache: yes
+  become: yes
+  when: ansible_distribution in ['Ubuntu', 'Debian']
+
+- name: Install openstacksdk on CentOS/RHEL
+  dnf:
+    name: python3-openstacksdk
+    state: present
+  become: yes
+  when: ansible_os_family == 'RedHat'

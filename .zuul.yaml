@@ -47,6 +47,10 @@
           label: ubuntu-jammy-large
     vars:
       ansible_molecule_ansible_version: "9.4.0"
+    files:
+      - '^\.zuul\.yaml$'
+      - '^molecule\/delegated\/[^\/]*yml$'
+      - '^molecule\/requirements\.txt$'
 
 - job:
     name: ansible-collection-validations-molecule-container_status
@@ -54,9 +58,6 @@
     vars:
       ansible_role: container_status
     files:
-      - '^\.zuul\.yaml$'
-      - '^molecule\/delegated\/[^\/]*yml$'
-      - '^molecule\/requirements\.txt$'
       - '^roles\/container_status\/.*$'
       - '^molecule\/delegated\/[a-zA-Z0-9_-]+\/container_status.*$'
 
@@ -66,9 +67,6 @@
     vars:
       ansible_role: kernel_version
     files:
-      - '^\.zuul\.yaml$'
-      - '^molecule\/delegated\/[^\/]*yml$'
-      - '^molecule\/requirements\.txt$'
       - '^roles\/kernel_version\/.*$'
       - '^molecule\/delegated\/[a-zA-Z0-9_-]+\/kernel_version.*$'
 
@@ -78,23 +76,8 @@
     vars:
       ansible_role: mysql_open_files_limit
     files:
-      - '^\.zuul\.yaml$'
-      - '^molecule\/delegated\/[^\/]*yml$'
-      - '^molecule\/requirements\.txt$'
-      - '^roles\/kernel_version\/.*$'
+      - '^roles\/mysql_open_files_limit\/.*$'
       - '^molecule\/delegated\/[a-zA-Z0-9_-]+\/mysql_open_files_limit.*$'
-
-- job:
-    name: ansible-collection-validations-molecule-refstack
-    parent: abstract-ansible-collection-validations-molecule
-    vars:
-      ansible_role: refstack
-    files:
-      - '^\.zuul\.yaml$'
-      - '^molecule\/delegated\/[^\/]*yml$'
-      - '^molecule\/requirements\.txt$'
-      - '^roles\/refstack\/.*$'
-      - '^molecule\/delegated\/[a-zA-Z0-9_-]+\/refstack.*$'
 
 - job:
     name: ansible-collection-validations-molecule-system_encoding
@@ -102,9 +85,6 @@
     vars:
       ansible_role: system_encoding
     files:
-      - '^\.zuul\.yaml$'
-      - '^molecule\/delegated\/[^\/]*yml$'
-      - '^molecule\/requirements\.txt$'
       - '^roles\/system_encoding\/.*$'
       - '^molecule\/delegated\/[a-zA-Z0-9_-]+\/system_encoding.*$'
 
@@ -114,9 +94,6 @@
     vars:
       ansible_role: ulimits
     files:
-      - '^\.zuul\.yaml$'
-      - '^molecule\/delegated\/[^\/]*yml$'
-      - '^molecule\/requirements\.txt$'
       - '^roles\/ulimits\/.*$'
       - '^molecule\/delegated\/[a-zA-Z0-9_-]+\/ulimits.*$'
 
@@ -124,24 +101,22 @@
     merge-mode: squash-merge
     check:
       jobs:
-        #- ansible-collection-validations-molecule-container_status
-        #- ansible-collection-validations-molecule-kernel_version
-        #- ansible-collection-validations-molecule-mysql_open_files_limit
-        - ansible-collection-validations-molecule-refstack
-        #- ansible-collection-validations-molecule-system_encoding
-        #- ansible-collection-validations-molecule-ulimits
+        - ansible-collection-validations-molecule-container_status
+        - ansible-collection-validations-molecule-kernel_version
+        - ansible-collection-validations-molecule-mysql_open_files_limit
+        - ansible-collection-validations-molecule-system_encoding
+        - ansible-collection-validations-molecule-ulimits
         - ansible-lint
         - flake8
         - python-black
         - yamllint
     gate:
       jobs:
-        #- ansible-collection-validations-molecule-container_status
-        #- ansible-collection-validations-molecule-kernel_version
-        #- ansible-collection-validations-molecule-mysql_open_files_limit
-        - ansible-collection-validations-molecule-refstack
-        #- ansible-collection-validations-molecule-system_encoding
-        #- ansible-collection-validations-molecule-ulimits
+        - ansible-collection-validations-molecule-container_status
+        - ansible-collection-validations-molecule-kernel_version
+        - ansible-collection-validations-molecule-mysql_open_files_limit
+        - ansible-collection-validations-molecule-system_encoding
+        - ansible-collection-validations-molecule-ulimits
         - ansible-lint
         - flake8
         - python-black

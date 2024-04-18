@@ -1,4 +1,7 @@
 ---
+operator_user: dragon
+operator_group: "{{ operator_user }}"
+
 refstack_bootstrap: true
 refstack_install: true
 

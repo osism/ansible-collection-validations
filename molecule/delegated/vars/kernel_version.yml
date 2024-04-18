@@ -1,1 +1,7 @@
 ---
+# Kernel versions of Zuul workers
+kernel_version_expected: "{{ kernel_version_dict[ansible_facts.distribution] }}"
+kernel_version_dict:
+  CentOS: "5.14"
+  Debian: "6.1"
+  Ubuntu: "5.15"

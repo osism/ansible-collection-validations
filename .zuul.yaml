@@ -33,20 +33,99 @@
         secret: SECRET_ANSIBLE_COLLECTION_VALIDATIONS
         pass-to-parent: true
 
+- job:
+    name: abstract-ansible-collection-validations-molecule
+    parent: ansible-molecule
+    abstract: true
+    nodeset:
+      nodes:
+        - name: centos-9-stream
+          label: centos-9-stream
+        - name: debian-bookworm
+          label: debian-bookworm
+        - name: ubuntu-jammy-large
+          label: ubuntu-jammy-large
+    vars:
+      ansible_molecule_ansible_version: "9.4.0"
+    files:
+      - '^\.zuul\.yaml$'
+      - '^molecule\/delegated\/[^\/]*yml$'
+      - '^molecule\/requirements\.txt$'
+
+- job:
+    name: ansible-collection-validations-molecule-container_status
+    parent: abstract-ansible-collection-validations-molecule
+    vars:
+      ansible_role: container_status
+    files:
+      - '^roles\/container_status\/.*$'
+      - '^molecule\/delegated\/[a-zA-Z0-9_-]+\/container_status.*$'
+
+- job:
+    name: ansible-collection-validations-molecule-kernel_version
+    parent: abstract-ansible-collection-validations-molecule
+    vars:
+      ansible_role: kernel_version
+    files:
+      - '^roles\/kernel_version\/.*$'
+      - '^molecule\/delegated\/[a-zA-Z0-9_-]+\/kernel_version.*$'
+
+- job:
+    name: ansible-collection-validations-molecule-mysql_open_files_limit
+    parent: abstract-ansible-collection-validations-molecule
+    vars:
+      ansible_role: mysql_open_files_limit
+    files:
+      - '^roles\/mysql_open_files_limit\/.*$'
+      - '^molecule\/delegated\/[a-zA-Z0-9_-]+\/mysql_open_files_limit.*$'
+
+- job:
+    name: ansible-collection-validations-molecule-system_encoding
+    parent: abstract-ansible-collection-validations-molecule
+    vars:
+      ansible_role: system_encoding
+    files:
+      - '^roles\/system_encoding\/.*$'
+      - '^molecule\/delegated\/[a-zA-Z0-9_-]+\/system_encoding.*$'
+
+- job:
+    name: ansible-collection-validations-molecule-ulimits
+    parent: abstract-ansible-collection-validations-molecule
+    vars:
+      ansible_role: ulimits
+    files:
+      - '^roles\/ulimits\/.*$'
+      - '^molecule\/delegated\/[a-zA-Z0-9_-]+\/ulimits.*$'
+
 - project:
     merge-mode: squash-merge
     check:
       jobs:
-        - yamllint
+        - ansible-collection-validations-molecule-container_status
+        - ansible-collection-validations-molecule-kernel_version
+        - ansible-collection-validations-molecule-mysql_open_files_limit
+        - ansible-collection-validations-molecule-system_encoding
+        - ansible-collection-validations-molecule-ulimits
         - ansible-lint
+        - flake8
+        - python-black
+        - yamllint
     gate:
       jobs:
-        - yamllint
+        - ansible-collection-validations-molecule-container_status
+        - ansible-collection-validations-molecule-kernel_version
+        - ansible-collection-validations-molecule-mysql_open_files_limit
+        - ansible-collection-validations-molecule-system_encoding
+        - ansible-collection-validations-molecule-ulimits
         - ansible-lint
+        - flake8
+        - python-black
+        - yamllint
     periodic-daily:
       jobs:
-        - yamllint
         - ansible-lint
+        - python-black
+        - yamllint
     post:
       jobs:
         - ansible-collection-validations-container-image-osism-ansible-push:

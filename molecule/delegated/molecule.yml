@@ -3,7 +3,7 @@ dependency:
   name: shell
   command: ansible-galaxy collection install -v -f -r molecule/delegated/collections.yml -p ~/.ansible/collections
 driver:
-  name: delegated
+  name: default
   options:
     managed: false
     ansible_connection_options:
@@ -20,6 +20,16 @@ provisioner:
       all:
         ansible_python_interpreter: /usr/bin/python3
         molecule_role: "${ANSIBLE_ROLE}"
+        prepared_vars_path: "/tmp/ansible-molecule"
+verifier:
+  name: testinfra
+  options:
+    v: 2
+  additional_files_or_dirs:
+    - "${ANSIBLE_ROLE}.py"
+    - "${ANSIBLE_ROLE}/*.py"
+  env:
+    ROLE_NAME: "${ANSIBLE_ROLE}"
 scenario:
   name: delegated
   test_sequence:
@@ -27,4 +37,5 @@ scenario:
     - create
     - prepare
     - converge
+    - verify
     - destroy

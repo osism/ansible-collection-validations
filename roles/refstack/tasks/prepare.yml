@@ -5,16 +5,16 @@
     path: "{{ refstack_workdir }}"
     state: directory
     mode: '0750'
-    owner: dragon
-    group: dragon
+    owner: "{{ operator_user }}"
+    group: "{{ operator_user }}"
   delegate_to: "{{ refstack_manager }}"
 
 - name: Copy tempest.conf file
   ansible.builtin.template:
     src: tempest.conf.j2
     dest: "{{ refstack_workdir }}/tempest.conf"
-    owner: dragon
-    group: dragon
+    owner: "{{ operator_user }}"
+    group: "{{ operator_user }}"
     mode: '0640'
   delegate_to: "{{ refstack_manager }}"
 
@@ -22,8 +22,8 @@
   ansible.builtin.template:
     src: accounts.yaml.j2
     dest: "{{ refstack_workdir }}/accounts.yaml"
-    owner: dragon
-    group: dragon
+    owner: "{{ operator_user }}"
+    group: "{{ operator_user }}"
     mode: '0640'
   delegate_to: "{{ refstack_manager }}"
 
@@ -31,8 +31,8 @@
   ansible.builtin.template:
     src: "{{ item }}.j2"
     dest: "{{ refstack_workdir }}/{{ item }}"
-    owner: dragon
-    group: dragon
+    owner: "{{ operator_user }}"
+    group: "{{ operator_user }}"
     mode: '0755'
   loop: "{{ refstack_scripts }}"
   delegate_to: "{{ refstack_manager }}"

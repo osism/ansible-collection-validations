@@ -1,0 +1,141 @@
+# {{ ansible_managed }}
+
+[DEFAULT]
+log_dir = {{ tempest_share_mount }}/tempest/logs
+log_file = tempest.log
+
+resource_name_prefix = osism-validation-tempest
+
+[oslo_concurrency]
+lock_path = {{ tempest_share_mount }}/tempest/tempest_lock
+
+[auth]
+use_dynamic_credentials = true
+tempest_roles = {{ tempest_roles | join(',') }}
+admin_username = {{ tempest_admin_username }}
+admin_password = {{ tempest_admin_password }}
+admin_project_name = {{ tempest_admin_project_name }}
+admin_domain_name = {{ tempest_admin_domain_name }}
+
+{% if tempest_enable_nova | bool -%}
+[compute]
+image_ref = {{ _image_ref }}
+image_ref_alt = {{ _image_ref_alt }}
+
+flavor_ref = {{ _flavor_ref }}
+flavor_ref_alt = {{ _flavor_ref_alt }}
+
+build_timeout = {{ tempest_compute_build_timeout}}
+min_compute_nodes = {{ tempest_min_compute_nodes }}
+
+min_microversion = "2.2"
+max_microversion = "latest"
+
+volume_device_name = {{ tempest_volume_device_name }}
+
+[compute-feature-enabled]
+resize = {{ tempest_resize | string }}
+shelve_migrate = {{ tempest_shelve_migrate | string }}
+{%   if tempest_enable_cinder | bool -%}
+attach_encrypted_volume = {{ tempest_attach_encrypted_volumes | string }}
+volume_backed_live_migration = true
+{%-   else -%}
+block_migration_for_live_migration = true
+{%-   endif %}
+{%- endif %}
+
+{% if tempest_enable_horizon | bool -%}
+[dashboard]
+dashboard_url = {{ tempest_dashboard_url }}
+{%- endif %}
+
+{% if tempest_enable_designate | bool -%}
+[dns]
+nameservers = {{ tempest_nameservers | join(',') }}
+{%- endif %}
+
+[identity]
+auth_version = v3
+region = {{ tempest_region }}
+uri_v3 = {{ tempest_uri_v3 }}
+v3_endpoint_type = public
+
+{% if tempest_enable_glance | bool -%}
+[image]
+build_timeout = {{ tempest_image_build_timeout }}
+{%- endif %}
+
+{% if tempest_enable_barbican | bool -%}
+[key_manager]
+min_microversion = "1.0"
+max_microversion = "latest"
+{%- endif %}
+
+{% if tempest_enable_octavia | bool -%}
+[load_balancer]
+provider = {{ tempest_loadbalancer_provider }}
+enabled_provider_drivers = {{ tempest_loadbalancer_enabled_provider_drivers | join(',') }}
+
+[loadbalancer-feature-enabled]
+not_implemented_is_error = {{ tempest_loadblancer_not_implemented_is_error | string }}
+{%- endif %}
+
+{% if tempest_enable_neutron | bool -%}
+[network]
+public_network_id: {{ _floating_ip_network_id }}
+floating_ip_network_name: {{ _floating_ip_network_id }}
+build_timeout = {{ tempest_network_build_timeout }}
+
+[network-feature-enabled]
+port_security = {{ tempest_port_security | string }}
+ipv6_subnet_attributes = {{ tempest_ipv6_subnet_attributes | string }}
+api_extensions = {{ tempest_api_extensions }}
+{%- endif %}
+
+{% if tempest_enable_swift | bool -%}
+[object-storage]
+operator_role = admin
+reseller_admin_role = admin
+container_sync_timeout = {{ tempest_container_sync_timeout }}
+build_timeout = {{ tempest_object_build_timeout }}
+{%- endif %}
+
+[placement]
+min_microversion = "1.0"
+max_microversion = "latest"
+
+[scenario]
+img_file = {{ tempest_img_file }}
+img_properties = {{ tempest_img_properties }}
+dhcp_client = {{ tempest_dhcp_client }}
+
+[service_available]
+cinder = {{ tempest_enable_cinder | string }}
+designate = {{ tempest_enable_designate | string }}
+glance = {{ tempest_enable_glance | string }}
+horizon = {{ tempest_enable_horizon | string }}
+key_manager = {{ tempest_enable_barbican | string }}
+load_balancer = {{ tempest_enable_octavia | string }}
+neutron = {{ tempest_enable_neutron | string }}
+nova = {{ tempest_enable_nova | string }}
+swift = {{ tempest_enable_swift | string }}
+
+[service-clients]
+http_timeout = {{ tempest_http_timeout }}
+
+[validation]
+image_ssh_user = {{ tempest_image_ssh_user }}
+ping_timeout = {{ tempest_ping_timeout }}
+connect_timeout = {{ tempest_connect_timeout }}
+ssh_timeout = {{ tempest_ssh_timeout }}
+
+{% if tempest_enable_cinder | bool -%}
+[volume]
+build_timeout = {{ tempest_volume_build_timeout }}
+backend_names = {{ tempest_backend_names | join(',') }}
+volume_type =  {{ tempest_volume_type }}
+storage_protocol = {{ tempest_storage_protocol }}
+volume_size =  {{ tempest_volume_size }}
+min_microversion = "3.0"
+max_microversion = "latest"
+{%- endif %}

@@ -1,15 +1,18 @@
 ---
-- name: Create tempest workdir
+- name: Create refstack workdir
+  become: true
+  delegate_to: "{{ groups[tempest_runtime_group] | first }}"
   ansible.builtin.file:
-    path: "{{ tempest_share_mount }}/tempest"
+    path: "{{ refstack_workdir }}"
     state: directory
-    mode: '0750'
-    owner: dragon
-    group: dragon
+    mode: 0750
+    owner: "{{ operator_user }}"
+    group: "{{ operator_user }}"
 
 - name: Check for existing tempest initialisation
+  delegate_to: "{{ groups[tempest_runtime_group] | first }}"
   ansible.builtin.stat:
-    path: "{{ tempest_share_mount }}/tempest/.stestr.conf"
+    path: "{{ tempest_workdir }}/tempest/.stestr.conf"
   register: _stestr_conf
 
 - name: Init tempest
@@ -18,21 +21,21 @@
     <<: &docker_common_opt
       cleanup: true
       detach: false
-      image: "{{ tempest_container_image_full }}"
+      image: "{{ tempest_image }}"
       init: false
       interactive: false
       name: "{{ tempest_container_name }}"
       network_mode: 'host'
       volumes:
-        - "{{ tempest_share_volume }}:{{ tempest_share_mount }}"
+        - "{{ tempest_workdir }}:/tempest"
         - "/etc/ssl/certs:/etc/ssl/certs:ro"
     command:
       - init
       - '--workspace-path'
-      - "{{ tempest_share_mount }}/tempest/workspace.yaml"
+      - "/tempest/workspace.yaml"
       - '--name'
       - "{{ tempest_workspace_name }}"
-      - "{{ tempest_share_mount }}/tempest"
+      - "/tempest"
   when:
     - not _stestr_conf.stat.exists
 
@@ -62,7 +65,7 @@
 - name: Resolve img_file or network api extensions
   when:
     - tempest_img_file is undefined or tempest_api_extensions is undefined
-  block:
+  block:  # noqa: osism-fqcn
     - name: Get auth token
       openstack.cloud.auth:
         <<: *os_auth
@@ -87,7 +90,7 @@
         service_id: "{{ _service_catalog.services | selectattr('type', 'equalto', 'image') | selectattr('is_enabled', 'truthy') | map(attribute='id') | first }}"
       ansible.builtin.get_url:
         headers: *os_auth_headers
-        dest: "{{ tempest_share_mount }}/tempest/{{ _img_file_name }}"
+        dest: "/tempest/{{ _img_file_name }}"
         mode: '0640'
         owner: dragon
         group: dragon
@@ -125,7 +128,7 @@
     tempest_img_file: "{{ _img_file.dest }}"
 
 - name: Resolve floating network ID
-  block:
+  block:  # noqa: osism-fqcn
     - name: Resolve floating network ID
       openstack.cloud.networks_info:
         <<: *os_auth
@@ -139,7 +142,7 @@
 - name: Resolve flavor IDs
   when:
     - not tempest_create_flavors | bool
-  block:
+  block:  # noqa: osism-fqcn
     - name: Resolve flavor IDs
       openstack.cloud.compute_flavor_info:
         <<: *os_auth
@@ -157,7 +160,7 @@
           - _flavors_resolved.results | map(attribute='flavors') | flatten | map(attribute='id') | list | unique | length == 2
 
 - name: Prepare and run tempest
-  block:
+  block:  # noqa: osism-fqcn
     - name: Create tempest flavors
       openstack.cloud.compute_flavor:
         <<: *os_auth
@@ -191,7 +194,7 @@
         _floating_ip_network_id: "{{ _floating_networks.networks | selectattr('is_router_external', 'truthy', 'convert_bool=True') | map(attribute='id') | first }}"
       ansible.builtin.template:
         src: tempest.conf.j2
-        dest: "{{ tempest_share_mount }}/tempest/etc/tempest.conf"
+        dest: "/tempest/etc/tempest.conf"
         owner: dragon
         group: dragon
         mode: '0640'
@@ -200,7 +203,7 @@
         _tempest_run_base:
           - run
           - '--workspace-path'
-          - "{{ tempest_share_mount }}/tempest/workspace.yaml"
+          - "/tempest/workspace.yaml"
           - '--workspace'
           - "{{ tempest_workspace_name }}"
         tempest_run_args: >-
@@ -211,7 +214,7 @@
             +
             (['--exclude-regex', tempest_exclude_regex] if tempest_exclude_regex is defined else [])
           }}
-      block:
+      block:  # noqa: osism-fqcn
         - name: Register selected tempest tests
           delegate_to: "{{ groups[tempest_runtime_group] | first }}"
           community.docker.docker_container:
@@ -240,7 +243,7 @@
               - /usr/local/bin/stestr
             command:
               - slowest
-            working_dir: "{{ tempest_share_mount }}/tempest"
+            working_dir: "/tempest"
           changed_when: false
           register: _stestr_slowest
         - name: Show slowest tests
@@ -255,7 +258,7 @@
               - /usr/local/bin/stestr
             command:
               - failing
-            working_dir: "{{ tempest_share_mount }}/tempest"
+            working_dir: "/tempest"
           changed_when: false
           register: _stestr_failing
           failed_when: _stestr_failing.status > 1

@@ -1,13 +1,13 @@
 # {{ ansible_managed }}
 
 [DEFAULT]
-log_dir = {{ tempest_share_mount }}/tempest/logs
+log_dir = /tempest/logs
 log_file = tempest.log
 
 resource_name_prefix = osism-validation-tempest
 
 [oslo_concurrency]
-lock_path = {{ tempest_share_mount }}/tempest/tempest_lock
+lock_path = /tempest/tempest_lock
 
 [auth]
 use_dynamic_credentials = true

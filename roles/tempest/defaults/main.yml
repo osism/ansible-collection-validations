@@ -11,7 +11,7 @@ tempest_workdir: /opt/tempest
 tempest_workspace_name: tempest
 
 tempest_tag: latest
-tempest_image: "{{ docker_registry_tempest }}/osism/tempest: {{ tempest_tag }}"
+tempest_image: "{{ docker_registry_tempest }}/osism/tempest:{{ tempest_tag }}"
 tempest_container_name: "{{ tempest_workspace_name }}"
 
 tempest_include_regex: '^tempest\.scenario\..*$|^barbican_tempest_plugin\.tests\.scenario.*$|^designate_tempest_plugin\.tests\.scenario\..*$|^octavia_tempest_plugin\.tests\.scenario\.v2\..*$'

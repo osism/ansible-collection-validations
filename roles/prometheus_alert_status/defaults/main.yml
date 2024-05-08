@@ -1,0 +1,5 @@
+---
+prometheus_alert_status_endpoint: https://api-int.testbed.osism.xyz:9091
+prometheus_alert_status_filter_rule_by_name: []
+prometheus_alert_status_user: admin
+prometheus_alert_status_password: password

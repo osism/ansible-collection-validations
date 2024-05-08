@@ -1,0 +1,48 @@
+---
+- name: Check prometheus is ready and healthy
+  ansible.builtin.uri:
+    <<: &prometheus_auth
+      force_basic_auth: true
+      url_username: "{{ prometheus_alert_status_user }}"
+      url_password: "{{ prometheus_alert_status_password }}"
+    method: HEAD
+    url: "{{ prometheus_alert_status_endpoint }}/-/{{ item }}"
+    status_code:
+      - 200
+  loop:
+    - ready
+    - healthy
+
+- name: Get alerts from prometheus
+  ansible.builtin.uri:
+    <<: *prometheus_auth
+    headers:
+      Content-Type: application/json
+    method: GET
+    url: "{{ prometheus_alert_status_endpoint }}/api/v1/alerts"
+    status_code:
+      - 200
+  register: _alerts
+
+- name: Assert successful alert retrieval
+  ansible.builtin.assert:
+    that:
+      - _alerts.json.status == 'success'
+
+- name: Filter alert list
+  ansible.builtin.set_fact:
+    _alerts_filtered: "{{ _alerts.json.data.alerts | rejectattr('labels.alertname', 'in', prometheus_alert_status_filter_rule_by_name) }}"
+
+- name: Show alerts
+  ansible.builtin.debug:
+    msg: "{{ item }}"
+  loop: "{{ _alerts_filtered }}"
+  loop_control:
+    label: "{{ item.labels }}"
+
+- name: Assert there are no pending or firing alerts
+  ansible.builtin.assert:
+    that:
+      - _alerts_filtered | length == 0
+    success_msg: 'No alerts are pending/firing'
+    fail_msg: "There are {{ _alerts_filtered | length }} alerts pending/firing"

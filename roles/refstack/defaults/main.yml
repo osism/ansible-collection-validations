@@ -13,7 +13,7 @@ refstack_guideline: "2022.11"
 refstack_keystone_endpoint: https://api.testbed.osism.xyz:5000/v3
 refstack_ca_cert: /etc/ssl/certs/ca-certificates.crt
 
-refstack_workdir: /opt/refstack
+refstack_workdir: /share/refstack
 refstack_cloud: admin
 
 refstack_admin_users:

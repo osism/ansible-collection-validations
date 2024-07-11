@@ -10,13 +10,11 @@
     group: "{{ operator_group }}"
 
 - name: Check for existing tempest initialisation
-  delegate_to: "{{ groups[tempest_runtime_group] | first }}"
   ansible.builtin.stat:
     path: "{{ tempest_workdir }}/.stestr.conf"
   register: _stestr_conf
 
 - name: Init tempest
-  delegate_to: "{{ groups[tempest_runtime_group] | first }}"
   community.docker.docker_container:
     <<: &docker_common_opt
       cleanup: true
@@ -40,6 +38,7 @@
     - not _stestr_conf.stat.exists
 
 - name: Resolve image IDs
+  delegate_to: localhost
   openstack.cloud.image_info:
     <<: &os_auth
       auth_type: password
@@ -67,10 +66,12 @@
     - tempest_img_file is undefined or tempest_api_extensions is undefined
   block:  # noqa: osism-fqcn
     - name: Get auth token
+      delegate_to: localhost
       openstack.cloud.auth:
         <<: *os_auth
       register: _auth_token
     - name: Get endpoint catalog
+      delegate_to: localhost
       ansible.builtin.uri:
         headers: &os_auth_headers
           Content-Type: application/json
@@ -79,10 +80,12 @@
         url: "{{ tempest_uri_v3 }}/endpoints"
       register: _endpoints
     - name: Get service catalog
+      delegate_to: localhost
       openstack.cloud.catalog_service_info:
         <<: *os_auth
       register: _service_catalog
     - name: Register img_file name
+      delegate_to: localhost
       when:
         - tempest_img_file is undefined
       ansible.builtin.set_fact:
@@ -92,7 +95,6 @@
         - tempest_img_file is undefined
       vars:
         service_id: "{{ _service_catalog.services | selectattr('type', 'equalto', 'image') | selectattr('is_enabled', 'truthy') | map(attribute='id') | first }}"
-      delegate_to: "{{ groups[tempest_runtime_group] | first }}"
       ansible.builtin.get_url:
         headers: *os_auth_headers
         dest: "{{ tempest_workdir }}/{{ _img_file_name }}"
@@ -101,6 +103,7 @@
         group: "{{ operator_group }}"
         url: "{{ _endpoints.json.endpoints | selectattr('interface', 'equalto', 'public') | selectattr('service_id', 'equalto', service_id) | map(attribute='url') | first }}{{ _images.results | map(attribute='images') | first | map(attribute='file') | first }}"
     - name: Get network API extensions
+      delegate_to: localhost
       when:
         - tempest_api_extensions is undefined
       vars:
@@ -112,6 +115,7 @@
       register: _network_api_extensions
   always:
     - name: Revoke token
+      delegate_to: localhost
       ansible.builtin.uri:
         headers:
           X-Subject-Token: "{{ _auth_token.auth_token }}"
@@ -121,11 +125,13 @@
           - 204
         url: "{{ tempest_uri_v3 }}/auth/tokens"
 - name: Set fact for config option api_extensions
+  delegate_to: localhost
   when:
     - tempest_api_extensions is undefined
   ansible.builtin.set_fact:
     tempest_api_extensions: "{{ _network_api_extensions.json.extensions | map(attribute='alias') | join(',') }}"
 - name: Set fact for config option img_file
+  delegate_to: localhost
   when:
     - tempest_img_file is undefined
   ansible.builtin.set_fact:
@@ -134,11 +140,13 @@
 - name: Resolve floating network ID
   block:  # noqa: osism-fqcn
     - name: Resolve floating network ID
+      delegate_to: localhost
       openstack.cloud.networks_info:
         <<: *os_auth
         name: "{{ tempest_floating_ip_network }}"
       register: _floating_networks
     - name: Assert floating network id has been resolved
+      delegate_to: localhost
       ansible.builtin.assert:
         that:
           - _floating_networks.networks | selectattr('is_router_external', 'truthy', 'convert_bool=True') | map(attribute='id') | length > 0
@@ -148,6 +156,7 @@
     - not tempest_create_flavors | bool
   block:  # noqa: osism-fqcn
     - name: Resolve flavor IDs
+      delegate_to: localhost
       openstack.cloud.compute_flavor_info:
         <<: *os_auth
         name: "{{ item.name if 'name' in item else omit }}"
@@ -159,6 +168,7 @@
         - "{{ tempest_flavor_alt }}"
       register: _flavors_resolved
     - name: Assert flavors have been resolved
+      delegate_to: localhost
       ansible.builtin.assert:
         that:
           - _flavors_resolved.results | map(attribute='flavors') | flatten | map(attribute='id') | list | unique | length == 2
@@ -166,6 +176,7 @@
 - name: Prepare and run tempest
   block:  # noqa: osism-fqcn
     - name: Create tempest flavors
+      delegate_to: localhost
       openstack.cloud.compute_flavor:
         <<: *os_auth
         name: "{{ item.name }}"
@@ -196,7 +207,6 @@
             _flavors_created.results | map(attribute='flavor') | map(attribute='id') | last
           }}
         _floating_ip_network_id: "{{ _floating_networks.networks | selectattr('is_router_external', 'truthy', 'convert_bool=True') | map(attribute='id') | first }}"
-      delegate_to: "{{ groups[tempest_runtime_group] | first }}"
       ansible.builtin.template:
         src: tempest.conf.j2
         dest: "{{ tempest_workdir }}/etc/tempest.conf"
@@ -221,7 +231,6 @@
           }}
       block:  # noqa: osism-fqcn
         - name: Register selected tempest tests
-          delegate_to: "{{ groups[tempest_runtime_group] | first }}"
           community.docker.docker_container:
             <<: *docker_common_opt
             command: "{{ _tempest_run_base + tempest_run_args + ['--list-tests'] }}"
@@ -231,7 +240,6 @@
           ansible.builtin.debug:
             msg: "{{ _tempest_tests.container.Output.split('\n') }}"
         - name: Run tempest
-          delegate_to: "{{ groups[tempest_runtime_group] | first }}"
           community.docker.docker_container:
             <<: *docker_common_opt
             command: "{{ _tempest_run_base + tempest_run_args }}"
@@ -241,7 +249,6 @@
           ansible.builtin.debug:
             msg: "{{ _tempest_run.container.Output.split('\n') }}"
         - name: Show slowest tests
-          delegate_to: "{{ groups[tempest_runtime_group] | first }}"
           community.docker.docker_container:
             <<: *docker_common_opt
             entrypoint:
@@ -256,7 +263,6 @@
             msg: "{{ _stestr_slowest.container.Output.split('\n') }}"
       rescue:
         - name: Show failed tests
-          delegate_to: "{{ groups[tempest_runtime_group] | first }}"
           community.docker.docker_container:
             <<: *docker_common_opt
             entrypoint:
@@ -273,6 +279,7 @@
           failed_when: true
   always:
     - name: Remove tempest flavors
+      delegate_to: localhost
       openstack.cloud.compute_flavor:
         <<: *os_auth
         name: "{{ item.name }}"

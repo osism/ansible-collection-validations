@@ -1,5 +1,6 @@
 ---
 - name: Create refstack workdir
+  become: true
   ansible.builtin.file:
     path: "{{ refstack_workdir }}"
     state: directory

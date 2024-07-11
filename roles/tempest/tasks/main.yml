@@ -1,6 +1,5 @@
 ---
 - name: Create tempest workdir
-  become: true
   delegate_to: "{{ groups[tempest_runtime_group] | first }}"
   ansible.builtin.file:
     path: "{{ tempest_workdir }}"

@@ -7,7 +7,7 @@ docker_registry_tempest: quay.io
 tempest_manager: testbed-manager
 
 tempest_runtime_group: manager
-tempest_workdir: /opt/tempest
+tempest_workdir: /share/tempest
 tempest_workspace_name: tempest
 
 tempest_tag: latest

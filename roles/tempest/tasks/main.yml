@@ -229,6 +229,7 @@
             +
             (['--exclude-regex', tempest_exclude_regex] if tempest_exclude_regex is defined else [])
           }}
+      tags: run-tempest
       block:  # noqa: osism-fqcn
         - name: Register selected tempest tests
           community.docker.docker_container:
@@ -280,6 +281,7 @@
   always:
     - name: Remove tempest flavors
       delegate_to: localhost
+      tags: run-tempest
       openstack.cloud.compute_flavor:
         <<: *os_auth
         name: "{{ item.name }}"

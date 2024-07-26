@@ -108,6 +108,7 @@
         - ansible-collection-validations-molecule-mysql_open_files_limit
         - ansible-collection-validations-molecule-system_encoding
         - ansible-collection-validations-molecule-ulimits
+        - ansible-collection-ensure-readme
         - ansible-lint
         - flake8
         - python-black
@@ -119,6 +120,7 @@
         - ansible-collection-validations-molecule-mysql_open_files_limit
         - ansible-collection-validations-molecule-system_encoding
         - ansible-collection-validations-molecule-ulimits
+        - ansible-collection-ensure-readme
         - ansible-lint
         - flake8
         - python-black

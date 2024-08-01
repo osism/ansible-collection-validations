@@ -1,0 +1,103 @@
+---
+- name: Assert provided group contains multiple hosts
+  ansible.builtin.assert:
+    that: network_connectivity_group | length > 1
+
+- name: Assert provided network is valid
+  ansible.builtin.assert:
+    that: network_connectivity_network_cidr | ansible.utils.ipaddr
+
+- name: Run ping check with maximum possible length
+  ansible.builtin.command:
+    argv:
+      - /bin/ping
+      # quiet
+      - -q
+      # do not fragment
+      - -M
+      - do
+      # set source IP
+      - -I
+      - "{{ ip_address }}"
+      # use MTU sized packets
+      - -s
+      - "{{ mtu | int - ip_header_size | int - icmp_header_size | int }}"
+      # send specified packet count
+      - -c
+      - "{{ network_connectivity_ping_count }}"
+      - "{{ item }}"
+  vars:
+    ip_version: >-
+      {{
+        'ipv4'
+        if network_cidr | ansible.utils.ipv4 | length > 0
+        else (
+          'ipv6'
+          if network_cidr | ansible.utils.ipv6 | length > 0
+          else
+          None
+        )
+      }}
+    ip_address: >-
+      {{
+        ansible_facts
+        | dict2items
+        | map(attribute='value')
+        | selectattr(ip_version, 'defined')
+        | map(attribute=ip_version)
+        | selectattr('address', 'defined')
+        | map(attribute='address')
+        | ansible.utils.ipaddr(network_cidr)
+        | list
+        | first
+      }}
+    mtu: >-
+      {{
+        ansible_facts
+        | dict2items
+        | map(attribute='value')
+        | selectattr(ip_version, 'defined')
+        | selectattr('mtu', 'defined')
+        | selectattr(ip_version + '.address', 'defined')
+        | selectattr(ip_version + '.address', 'equalto', ip_address)
+        | map(attribute='mtu')
+        | list
+        | first
+      }}
+    ip_header_size: >-
+      {{
+        20
+        if ip_version == 'ipv4'
+        else (
+          40
+          if ip_version == 'ipv6'
+          else
+          None
+        )
+      }}
+    icmp_header_size: '8'
+  loop: >-
+    {{
+      network_connectivity_group
+      | difference([inventory_hostname])
+      | map('extract', hostvars, 'ansible_facts')
+      | map('dict2items')
+      | map('map', attribute='value')
+      | map('selectattr', ip_version, 'defined')
+      | map('map', attribute=ip_version)
+      | map('selectattr', 'address', 'defined')
+      | map('map', attribute='address')
+      | map('ansible.utils.ipaddr', network_cidr)
+      | list
+      | flatten
+    }}
+  register: ping
+  changed_when: False
+
+- name: Assert that ping check was successful
+  ansible.builtin.assert:
+    that: item.rc == 0
+    quiet: True
+  loop: "{{ ping.results }}"
+  loop_control:
+    label: "{{ item.stdout }}"

@@ -1,0 +1,4 @@
+---
+network_connectivity_group: all
+network_connectivity_network_cidr: 127.0.0.0/8
+network_connectivity_ping_count: 1

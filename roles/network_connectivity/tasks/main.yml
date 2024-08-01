@@ -1,11 +1,11 @@
 ---
 - name: Assert provided group contains multiple hosts
   ansible.builtin.assert:
-    that: group  | length > 1
+    that: network_connectivity_group | length > 1
 
 - name: Assert provided network is valid
   ansible.builtin.assert:
-    that: network_cidr | ansible.utils.ipaddr
+    that: network_connectivity_network_cidr | ansible.utils.ipaddr
 
 - name: Run ping check with maximum possible length
   ansible.builtin.command:
@@ -24,7 +24,7 @@
       - "{{ mtu | int - ip_header_size | int - icmp_header_size | int }}"
       # send specified packet count
       - -c
-      - "{{ ping_count }}"
+      - "{{ network_connectivity_ping_count }}"
       - "{{ item }}"
   vars:
     ip_version: >-
@@ -78,7 +78,7 @@
     icmp_header_size: '8'
   loop: >-
     {{
-      group
+      network_connectivity_group
       | difference([inventory_hostname])
       | map('extract', hostvars, 'ansible_facts')
       | map('dict2items')

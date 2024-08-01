@@ -30,10 +30,10 @@
     ip_version: >-
       {{
         'ipv4'
-        if network_cidr | ansible.utils.ipv4 | length > 0
+        if network_connectivity_network_cidr | ansible.utils.ipv4 | length > 0
         else (
           'ipv6'
-          if network_cidr | ansible.utils.ipv6 | length > 0
+          if network_connectivity_network_cidr | ansible.utils.ipv6 | length > 0
           else
           None
         )
@@ -47,7 +47,7 @@
         | map(attribute=ip_version)
         | selectattr('address', 'defined')
         | map(attribute='address')
-        | ansible.utils.ipaddr(network_cidr)
+        | ansible.utils.ipaddr(network_connectivity_network_cidr)
         | list
         | first
       }}
@@ -87,7 +87,7 @@
       | map('map', attribute=ip_version)
       | map('selectattr', 'address', 'defined')
       | map('map', attribute='address')
-      | map('ansible.utils.ipaddr', network_cidr)
+      | map('ansible.utils.ipaddr', network_connectivity_network_cidr)
       | list
       | flatten
     }}

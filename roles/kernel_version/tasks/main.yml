@@ -1,7 +1,0 @@
----
-# source https://github.com/openstack/tripleo-validations/blob/master/roles/check_kernel_version/tasks/main.yml
-
-- name: Check kernel version
-  ansible.builtin.fail:
-    msg: "{{ kernel_version_expected }} does not match configured kernel_version {{ ansible_facts.kernel }}"
-  when: kernel_version_expected not in ansible_facts.kernel

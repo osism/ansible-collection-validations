@@ -1,9 +1,0 @@
-#!/usr/bin/env bash
-
-# https://opendev.org/openinfra/refstack/src/branch/master/doc/source/uploading_private_results.rst
-
-source {{ refstack_workdir }}/client/.venv/bin/activate
-refstack-client upload \
-    {{ refstack_workdir }}/client/.tempest/.stestr/$1 \
-    --url https://refstack.openstack.org/api \
-    -i ~/.ssh/id_rsa.refstack

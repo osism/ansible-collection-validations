@@ -2,6 +2,17 @@
 - secret:
     name: SECRET_ANSIBLE_COLLECTION_VALIDATIONS
     data:
+      DTRACK_API_KEY: !encrypted/pkcs1-oaep
+        - E4IveoHA1q0o3CwbCjv2K/4Q7SlxOGu2nQbZG//CCeieYnFEE83qKS7PuaKF29hZS+O62
+          Rfri4YUUHullYFKhRRRwUKJZ5Drl7aYLRLW7t/JtnDfO228hHnlbCP9xi8+3HJJdv+LcN
+          wkAp8TTx67L/d3xsXv6LOY7mOYvbW0dxKkSf2LbDWnP51wnMbb0+q4b4I/MkNFJghgRnE
+          UatpJQnFwVsh34Nk8WIIDi8eBaPbBCY2DVzrDb4P3HsQxK0D94A5TqZXCHDEBtPTHr2fi
+          tmFmHqjXwYr3agrZMScVS3x6GvjndIn5e/St06ZTwcQK5/l5LYS+x0ULJmmBppbGTqdsz
+          5mC0G1Rjr0NJPif+BOPY7DVcdtNOwLkEzxE89dLxqPPQTn2wXeEuzEQ+mGsuHV+UTw4Y4
+          H3+P1c4SvtOpYp+ERdA3y7YKmGH+S+/wFVjH3hkCsb4EQgd1001jLnchYAdhass8uhXd7
+          lModc8eLoH58HnMsu8PBtONHJoZOZCFXyHycl1L0odplJ7yRH9vmACuBVS+dl/h53Kywf
+          qGkDJvN69qsQPRq0Ai3gkC/DA5PgHBegbSu1pMyBSuLehTCiM5oK4LRY6ZOBTBHO1I6Bq
+          3+ODYnqVbHqZ9CtzB8hx+ZGew7xDQ/OjkZ2bTZ2Bc1ZE1XkASuX7uQpCzVf6fs=
       DOCKER_USERNAME: !encrypted/pkcs1-oaep
         - Ld6KvXJqMY1aJHMdTGO1OCWmSTOR38cMaRtWbtb0hgM14E9uSJGsMa+qLSrBwFtCHFGlY
           On1Ne9G+ggrz7tE7S6qO2KpVy5iOutufMYhzs6gWQ0jtNZqsPGWoc3fO9y3qZfv8Ilyif

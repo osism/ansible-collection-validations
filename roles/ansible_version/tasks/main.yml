@@ -1,0 +1,5 @@
+---
+- name: "Fail if ansible-core version is lower than {{ ansible_core_version }}"
+  ansible.builtin.fail:
+    msg: "Ansible core version is {{ ansible_version.full }}, expected Ansible core version is {{ ansible_core_version }}."
+  when: ansible_version.full is ansible.builtin.version(ansible_core_version, '<')

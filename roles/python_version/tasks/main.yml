@@ -1,0 +1,10 @@
+---
+- name: "Get Python version"
+  ansible.builtin.command: python3 --version
+  register: result
+  changed_when: true
+
+- name: "Fail if python version is lower than {{ python_version_expected }}"
+  ansible.builtin.fail:
+    msg: "Python version is {{ result.stdout }}, expected Python version is {{ python_version_expected }}."
+  when: python_version_expected not in result.stdout

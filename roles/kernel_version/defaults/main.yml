@@ -1,2 +1,3 @@
 ---
 kernel_version_expected: "6.2"
+kernel_version_comparison_operator: ">="

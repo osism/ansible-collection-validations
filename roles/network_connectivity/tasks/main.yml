@@ -92,12 +92,12 @@
       | flatten
     }}
   register: ping
-  changed_when: False
+  changed_when: false
 
 - name: Assert that ping check was successful
   ansible.builtin.assert:
     that: item.rc == 0
-    quiet: True
+    quiet: true
   loop: "{{ ping.results }}"
   loop_control:
     label: "{{ item.stdout }}"

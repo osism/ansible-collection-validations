@@ -1,7 +1,8 @@
 ---
-# source https://github.com/openstack/tripleo-validations/blob/master/roles/check_kernel_version/tasks/main.yml
-
-- name: Check kernel version
+- name: Gather fact 'kernel'
+  ansible.builtin.setup:
+    filter: "kernel"
+- name: "Check kernel version is {{ kernel_version_comparison_operator + ' ' + kernel_version_expected | string }}"
   ansible.builtin.fail:
-    msg: "{{ kernel_version_expected }} does not match configured kernel_version {{ ansible_facts.kernel }}"
-  when: kernel_version_expected not in ansible_facts.kernel
+    msg: "{{ ansible_facts.kernel }} is not {{ kernel_version_comparison_operator + ' ' + kernel_version_expected | string }}"
+  when: ansible_facts.kernel is not ansible.builtin.version(kernel_version_expected, operator=kernel_version_comparison_operator)

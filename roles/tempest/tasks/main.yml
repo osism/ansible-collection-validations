@@ -19,7 +19,7 @@
     <<: &docker_common_opt
       cleanup: true
       detach: false
-      image: "{{ tempest_image }}"
+      image: "{{ tempest_osism_image }}"
       init: false
       interactive: false
       name: "{{ tempest_container_name }}"

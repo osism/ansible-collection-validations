@@ -36,8 +36,8 @@ tempest_ca_cert: /etc/ssl/certs/ca-certificates.crt
 tempest_dashboard_url: https://api.testbed.osism.xyz
 
 # compute
-tempest_image_ref: Cirros 0.6.2
-tempest_image_ref_alt: Cirros 0.6.1
+tempest_image_ref: Cirros 0.6.3
+tempest_image_ref_alt: Cirros 0.6.2
 
 # create flavors or discover existing flavors
 # according to the given specs in `tempest_flavors`

@@ -10,8 +10,8 @@ tempest_runtime_group: manager
 tempest_workdir: /opt/tempest
 tempest_workspace_name: tempest
 
-tempest_osims_tag: latest
-tempest_osims_image: "{{ docker_registry_tempest }}/osism/tempest:{{ tempest_osism_tag }}"
+tempest_osism_tag: latest
+tempest_osism_image: "{{ docker_registry_tempest }}/osism/tempest:{{ tempest_osism_tag }}"
 tempest_container_name: "{{ tempest_workspace_name }}"
 
 tempest_include_regex: '^tempest\.scenario\..*$|^barbican_tempest_plugin\.tests\.scenario.*$|^designate_tempest_plugin\.tests\.scenario\..*$|^octavia_tempest_plugin\.tests\.scenario\.v2\..*$'

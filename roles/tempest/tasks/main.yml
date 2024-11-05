@@ -70,6 +70,7 @@
       openstack.cloud.auth:
         <<: *os_auth
       register: _auth_token
+
     - name: Get endpoint catalog
       delegate_to: localhost
       ansible.builtin.uri:
@@ -79,17 +80,20 @@
         method: GET
         url: "{{ tempest_uri_v3 }}/endpoints"
       register: _endpoints
+
     - name: Get service catalog
       delegate_to: localhost
       openstack.cloud.catalog_service_info:
         <<: *os_auth
       register: _service_catalog
+
     - name: Register img_file name
       delegate_to: localhost
       when:
         - tempest_img_file is undefined
       ansible.builtin.set_fact:
         _img_file_name: "{{ _images.results | map(attribute='images') | first | map(attribute='name') | first | replace(' ', '_') }}"
+
     - name: Download img_file from image_ref
       when:
         - tempest_img_file is undefined
@@ -97,11 +101,26 @@
         service_id: "{{ _service_catalog.services | selectattr('type', 'equalto', 'image') | selectattr('is_enabled', 'truthy') | map(attribute='id') | first }}"
       ansible.builtin.get_url:
         headers: *os_auth_headers
-        dest: "{{ tempest_workdir }}/{{ _img_file_name }}"
+        dest: "{{ tempest_workdir }}/{{ _img_file_name }}.raw"
         mode: '0640'
         owner: "{{ operator_user }}"
         group: "{{ operator_group }}"
         url: "{{ _endpoints.json.endpoints | selectattr('interface', 'equalto', 'public') | selectattr('service_id', 'equalto', service_id) | map(attribute='url') | first }}{{ _images.results | map(attribute='images') | first | map(attribute='file') | first }}"
+
+    - name: Install qemu-utils package
+      become: true
+      when:
+        - tempest_img_file is undefined
+      ansible.builtin.package:
+        name: qemu-utils
+        state: present
+
+    - name: Convert img_file to qcow2 format
+      when:
+        - tempest_img_file is undefined
+      ansible.builtin.command: "qemu-img convert -O qcow2 {{ tempest_workdir }}/{{ _img_file_name }}.raw {{ tempest_workdir }}/{{ _img_file_name }}"
+      changed_when: true
+
     - name: Get network API extensions
       delegate_to: localhost
       when:
@@ -124,12 +143,14 @@
         status_code:
           - 204
         url: "{{ tempest_uri_v3 }}/auth/tokens"
+
 - name: Set fact for config option api_extensions
   delegate_to: localhost
   when:
     - tempest_api_extensions is undefined
   ansible.builtin.set_fact:
     tempest_api_extensions: "{{ _network_api_extensions.json.extensions | map(attribute='alias') | join(',') }}"
+
 - name: Set fact for config option img_file
   delegate_to: localhost
   when:
@@ -145,6 +166,7 @@
         <<: *os_auth
         name: "{{ tempest_floating_ip_network }}"
       register: _floating_networks
+
     - name: Assert floating network id has been resolved
       delegate_to: localhost
       ansible.builtin.assert:
@@ -167,6 +189,7 @@
         - "{{ tempest_flavor }}"
         - "{{ tempest_flavor_alt }}"
       register: _flavors_resolved
+
     - name: Assert flavors have been resolved
       delegate_to: localhost
       ansible.builtin.assert:
@@ -190,6 +213,7 @@
       register: _flavors_created
       when:
         - tempest_create_flavors | bool
+
     - name: Copy tempest.conf file
       vars:
         _image_ref: "{{ _images.results | map(attribute='images') | first | map(attribute='id') | first }}"
@@ -213,6 +237,7 @@
         owner: "{{ operator_user }}"
         group: "{{ operator_group }}"
         mode: '0640'
+
     - name: Run tempest tests
       vars:
         _tempest_run_base:
@@ -237,18 +262,22 @@
             command: "{{ _tempest_run_base + tempest_run_args + ['--list-tests'] }}"
           changed_when: false
           register: _tempest_tests
+
         - name: List selected tempest tests
           ansible.builtin.debug:
             msg: "{{ _tempest_tests.container.Output.split('\n') }}"
+
         - name: Run tempest
           community.docker.docker_container:
             <<: *docker_common_opt
             command: "{{ _tempest_run_base + tempest_run_args }}"
           changed_when: false
           register: _tempest_run
+
         - name: Show result
           ansible.builtin.debug:
             msg: "{{ _tempest_run.container.Output.split('\n') }}"
+
         - name: Show slowest tests
           community.docker.docker_container:
             <<: *docker_common_opt
@@ -259,6 +288,7 @@
             working_dir: "/tempest"
           changed_when: false
           register: _stestr_slowest
+
         - name: Show slowest tests
           ansible.builtin.debug:
             msg: "{{ _stestr_slowest.container.Output.split('\n') }}"
@@ -274,6 +304,7 @@
           changed_when: false
           register: _stestr_failing
           failed_when: _stestr_failing.status > 1
+
         - name: Show failed tests
           ansible.builtin.debug:
             msg: "{{ _stestr_failing.container.Output.split('\n') }}"

@@ -87,7 +87,7 @@ tempest_enable_swift: true
 tempest_image_build_timeout: 600
 
 # loadbalancer
-tempest_loadbalancer_provider: ovn
+tempest_loadbalancer_provider: amphora
 tempest_loadbalancer_enabled_provider_drivers:
   - amphora:Amphora provider
   - ovn:OVN provider

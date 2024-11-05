@@ -73,7 +73,7 @@ tempest_floating_ip_network: public
 tempest_network_build_timeout: 600
 
 # service_available
-tempest_enable_barbican: true
+tempest_enable_barbican: false
 tempest_enable_cinder: true
 tempest_enable_designate: true
 tempest_enable_glance: true

@@ -80,7 +80,7 @@ tempest_enable_glance: true
 tempest_enable_horizon: true
 tempest_enable_neutron: true
 tempest_enable_nova: true
-tempest_enable_octavia: true
+tempest_enable_octavia: false
 tempest_enable_swift: true
 
 # image

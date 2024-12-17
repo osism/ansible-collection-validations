@@ -131,6 +131,8 @@ ssh_timeout = {{ tempest_ssh_timeout }}
 
 {% if tempest_enable_cinder | bool -%}
 [volume]
+# https://github.com/osism/issues/issues/1193
+catalog_type = volumev3
 build_timeout = {{ tempest_volume_build_timeout }}
 backend_names = {{ tempest_backend_names | join(',') }}
 volume_type =  {{ tempest_volume_type }}

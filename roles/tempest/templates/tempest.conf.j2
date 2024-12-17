@@ -34,6 +34,7 @@ max_microversion = "latest"
 volume_device_name = {{ tempest_volume_device_name }}
 
 [compute-feature-enabled]
+vnc_console = true
 resize = {{ tempest_resize | string }}
 shelve_migrate = {{ tempest_shelve_migrate | string }}
 {%   if tempest_enable_cinder | bool -%}

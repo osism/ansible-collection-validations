@@ -250,9 +250,9 @@
           {{
             (['--concurrency', tempest_concurrency] if tempest_concurrency | int > 1 else ['--serial'])
             +
-            (['--regex', tempest_include_regex] if tempest_include_regex is defined else [])
+            (['--regex', tempest_include_regex] if tempest_include_regex is defined and tempest_include_regex | length > 0 else [])
             +
-            (['--exclude-regex', tempest_exclude_regex] if tempest_exclude_regex is defined else [])
+            (['--exclude-regex', tempest_exclude_regex] if tempest_exclude_regex is defined and tempest_exclude_regex | length > 0 else [])
           }}
       tags: run-tempest
       block:  # noqa: osism-fqcn

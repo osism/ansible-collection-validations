@@ -26,6 +26,7 @@ tempest_admin_project_name: admin
 tempest_admin_domain_name: Default
 tempest_roles:
   - creator
+  - member
 
 # identity
 tempest_uri_v3: https://api.testbed.osism.xyz:5000/v3

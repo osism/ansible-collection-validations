@@ -1,4 +1,6 @@
 # {{ ansible_managed }}
+#
+# https://docs.openstack.org/tempest/latest/sampleconf.html#tempest-sampleconf
 
 [DEFAULT]
 log_dir = /tempest/logs
@@ -82,8 +84,8 @@ not_implemented_is_error = {{ tempest_loadblancer_not_implemented_is_error | str
 
 {% if tempest_enable_neutron | bool -%}
 [network]
-public_network_id: {{ _floating_ip_network_id }}
-floating_ip_network_name: {{ _floating_ip_network_id }}
+public_network_id = {{ _floating_ip_network_id }}
+floating_network_name = {{ tempest_floating_ip_network }}
 build_timeout = {{ tempest_network_build_timeout }}
 
 [network-feature-enabled]

@@ -2,6 +2,8 @@
 operator_user: dragon
 operator_group: "{{ operator_user }}"
 
+configuration_directory: /opt/configuration
+
 docker_registry_tempest: quay.io
 
 tempest_manager: testbed-manager
@@ -16,6 +18,9 @@ tempest_container_name: "{{ tempest_workspace_name }}"
 
 tempest_include_regex: ""
 tempest_exclude_regex: ""
+
+tempest_exclude_list: /opt/configuration/environments/openstack/files/tempest/exclude.lst
+tempest_include_list: /opt/configuration/environments/openstack/files/tempest/include.lst
 
 tempest_concurrency: 1
 

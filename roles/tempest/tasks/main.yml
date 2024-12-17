@@ -196,6 +196,34 @@
         that:
           - _flavors_resolved.results | map(attribute='flavors') | flatten | map(attribute='id') | list | unique | length == 2
 
+- name: Get stats of exclude list
+  ansible.builtin.stat:
+    path: "{{ tempest_exclude_list }}"
+  register: result_exclude_list
+
+- name: Copy exclude list
+  ansible.builtin.copy:
+    src: "{{ tempest_exclude_list }}"
+    dest: "{{ tempest_workdir }}/exclude.lst"
+    mode: 0644
+    owner: "{{ operator_user }}"
+    group: "{{ operator_group }}"
+  when: result_exclude_list.stat.exists
+
+- name: Get stats of include list
+  ansible.builtin.stat:
+    path: "{{ tempest_include_list }}"
+  register: result_include_list
+
+- name: Copy include list
+  ansible.builtin.copy:
+    src: "{{ tempest_include_list }}"
+    dest: "{{ tempest_workdir }}/include.lst"
+    mode: 0644
+    owner: "{{ operator_user }}"
+    group: "{{ operator_group }}"
+  when: result_include_list.stat.exists
+
 - name: Prepare and run tempest
   block:  # noqa: osism-fqcn
     - name: Create tempest flavors
@@ -253,6 +281,10 @@
             (['--regex', tempest_include_regex] if tempest_include_regex is defined and tempest_include_regex | length > 0 else [])
             +
             (['--exclude-regex', tempest_exclude_regex] if tempest_exclude_regex is defined and tempest_exclude_regex | length > 0 else [])
+            +
+            (['--exclude-list', '/opt/tempest/exclude.lst'] if result_include_list.stat.exists else [])
+            +
+            (['--include-list', '/opt/tempest/include.lst'] if result_include_list.stat.exists else [])
           }}
       tags: run-tempest
       block:  # noqa: osism-fqcn

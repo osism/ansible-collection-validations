@@ -79,14 +79,14 @@ tempest_floating_ip_network: public
 tempest_network_build_timeout: 600
 
 # service_available
-tempest_enable_barbican: false
+tempest_enable_barbican: true
 tempest_enable_cinder: true
 tempest_enable_designate: true
 tempest_enable_glance: true
 tempest_enable_horizon: true
 tempest_enable_neutron: true
 tempest_enable_nova: true
-tempest_enable_octavia: false
+tempest_enable_octavia: true
 tempest_enable_swift: true
 
 # image

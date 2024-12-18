@@ -124,3 +124,4 @@ tempest_backend_names:
 tempest_volume_type: __DEFAULT__
 tempest_storage_protocol: ceph
 tempest_volume_size: 1
+tempest_volume_multiattach: true

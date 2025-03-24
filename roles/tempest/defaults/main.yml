@@ -4,7 +4,7 @@ operator_group: "{{ operator_user }}"
 
 configuration_directory: /opt/configuration
 
-docker_registry_tempest: quay.io
+docker_registry_tempest: registry.osism.tech
 
 tempest_manager: testbed-manager
 

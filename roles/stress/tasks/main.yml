@@ -1,0 +1,16 @@
+---
+- name: Include distribution specific install tasks
+  ansible.builtin.include_tasks: "install-{{ ansible_os_family }}-family.yml"
+
+- name: Copy stress.sh script
+  become: true
+  ansible.builtin.template:
+    src: stress.sh.j2
+    dest: /usr/local/bin/stress.sh
+    mode: 0755
+    owner: "{{ operator_user | default('dragon') }}"
+    group: "{{ operator_group | default('dragon') }}"
+
+- name: Run stress.sh script
+  ansible.builtin.command: screen -S stress -d -m /usr/local/bin/stress.sh
+  changed_when: false

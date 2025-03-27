@@ -1,0 +1,9 @@
+---
+- name: Install required packages
+  become: true
+  ansible.builtin.dnf:
+    name:
+      - screen
+      - stress-ng
+    state: present
+    lock_timeout: "{{ dnf_lock_timeout | default(300) }}"

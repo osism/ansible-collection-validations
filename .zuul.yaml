@@ -93,6 +93,15 @@
       - '^molecule\/delegated\/[a-zA-Z0-9_-]+\/mysql_open_files_limit.*$'
 
 - job:
+    name: ansible-collection-validations-molecule-stress
+    parent: abstract-ansible-collection-validations-molecule
+    vars:
+      ansible_role: stress
+    files:
+      - '^roles\/stress\/.*$'
+      - '^molecule\/delegated\/[a-zA-Z0-9_-]+\/stress.*$'
+
+- job:
     name: ansible-collection-validations-molecule-system_encoding
     parent: abstract-ansible-collection-validations-molecule
     vars:
@@ -117,6 +126,7 @@
         - ansible-collection-validations-molecule-container_status
         - ansible-collection-validations-molecule-kernel_version
         - ansible-collection-validations-molecule-mysql_open_files_limit
+        - ansible-collection-validations-molecule-stress
         - ansible-collection-validations-molecule-system_encoding
         - ansible-collection-validations-molecule-ulimits
         - ansible-collection-ensure-readme
@@ -129,6 +139,7 @@
         - ansible-collection-validations-molecule-container_status
         - ansible-collection-validations-molecule-kernel_version
         - ansible-collection-validations-molecule-mysql_open_files_limit
+        - ansible-collection-validations-molecule-stress
         - ansible-collection-validations-molecule-system_encoding
         - ansible-collection-validations-molecule-ulimits
         - ansible-collection-ensure-readme

@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+NUMBER_OF_CPUS=$(nproc --all)
+TIMEOUT={{ stress_timeout }}
+
+filename=/opt/stress-$(hostname).txt
+
+sudo /usr/bin/stress-ng --cpu $NUMBER_OF_CPUS --timeout $TIMEOUT | sudo tee -a ${filename// /_}
+sudo /usr/bin/stress-ng --vm 1 --vm-bytes 80% --vm-method all --verify --timeout $TIMEOUT | sudo tee -a ${filename// /_}

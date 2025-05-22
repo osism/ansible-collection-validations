@@ -1,0 +1,3 @@
+---
+docker_version_expected: "26.0.2"
+docker_client_version_expected: "26.0.2"

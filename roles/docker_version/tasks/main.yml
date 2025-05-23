@@ -1,0 +1,14 @@
+---
+- name: Get Docker version
+  ansible.builtin.command: docker --version
+  register: docker_version_result
+  changed_when: false
+
+- name: Extract Docker version
+  ansible.builtin.set_fact:
+    docker_installed_version: "{{ docker_version_result.stdout | regex_search('Docker version ([0-9]+\\.[0-9]+\\.[0-9]+)', '\\1') | first }}"
+
+- name: Fail if Docker version does not match expected version
+  ansible.builtin.fail:
+    msg: "Docker version is {{ docker_installed_version }}, expected Docker version is {{ docker_version_expected }}."
+  when: docker_installed_version != docker_version_expected

@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+
+docker run --rm \
+  -v {{ tempest_workdir }}:/tempest \
+  -v /etc/ssl/certs:/etc/ssl/certs:ro \
+  --network host  \
+  --name {{ tempest_container_name }} \
+  {{ tempest_osism_image }} \
+  run \
+  --workspace-path /tempest/workspace.yaml \
+  --workspace {{ tempest_workspace_name }} \
+  --exclude-list /tempest/exclude.lst \
+  --regex "$1" \
+  --concurrency {{ tempest_concurrency }} | tee -a {{ tempest_workdir }}/$(date +%Y%m%d-%H%M).log

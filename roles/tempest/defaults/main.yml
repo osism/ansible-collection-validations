@@ -31,6 +31,7 @@ tempest_admin_project_name: admin
 tempest_admin_domain_name: Default
 tempest_roles:
   - creator
+  - load-balancer_member
   - member
 
 # identity

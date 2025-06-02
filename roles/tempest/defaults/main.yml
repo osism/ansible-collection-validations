@@ -94,9 +94,9 @@ tempest_enable_swift: true
 tempest_image_build_timeout: 600
 
 # loadbalancer
-tempest_loadbalancer_provider: ovn
+tempest_loadbalancer_provider: amphora
 tempest_loadbalancer_enabled_provider_drivers:
-  - ovn:OVN provider
+  - amphora:Amphora driver
 tempest_loadblancer_not_implemented_is_error: false  # ovn provider does not implement all features
 
 # object-storage

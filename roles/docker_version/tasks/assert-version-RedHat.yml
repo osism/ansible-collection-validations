@@ -1,0 +1,4 @@
+---
+- name: Assertions not implemented for RPM versioning
+  ansible.builtin.fail:
+    msg: "Assertions not implemented for RPM versioning"

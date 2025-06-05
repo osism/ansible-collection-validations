@@ -1,0 +1,39 @@
+---
+- name: Docker version assertions (Debian)
+  vars:
+    # NOTE: Split version into epoch, upstream and revision according to
+    # https://man7.org/linux/man-pages/man7/deb-version.7.html
+    expected_version_epoch: "{{ expected_version | split(':') | first if ':' in expected_version else '0' }}"
+    expected_version_revision: "{{ expected_version | split('-') | last if '-' in expected_version else '' }}"
+    _expected_version_tail: "{{ (expected_version | split(':'))[1:] | join(':') if ':' in expected_version else expected_version }}"
+    expected_version_upstream: "{{ (_expected_version_tail | split('-'))[:-1] | join('-') if '-' in _expected_version_tail else _expected_version_tail }}"
+    package_version: "{{ package_versions | first }}"
+    package_version_epoch: "{{ package_version | split(':') | first if ':' in package_version else '0' }}"
+    package_version_revision: "{{ package_version | split('-') | last if '-' in package_version else '' }}"
+    _package_version_tail: "{{ (package_version | split(':'))[1:] | join(':') if ':' in package_version else package_version }}"
+    package_version_upstream: "{{ (_package_version_tail | split('-'))[:-1] | join('-') if '-' in _package_version_tail else _package_version_tail }}"
+  block:  # noqa osism-fqcn
+    - name: Assert that only a single docker version is installed
+      ansible.builtin.assert:
+        that: package_versions | length == 1
+
+    - name: Assert expected docker version is installed
+      ansible.builtin.assert:
+        that:
+          - expected_version_epoch == package_version_epoch
+          - expected_version_upstream is ansible.builtin.version(package_version_upstream)
+        success_msg: "Expected and installed versions match"
+        fail_msg: "Version mismatch! Expected version {{ expected_version_epoch ~ ':' ~ expected_version_upstream }}, but found installed version {{ package_version_epoch ~ ':' ~ package_version_upstream }}"
+    - name: Assert expected docker version revision is installed
+      ansible.builtin.assert:
+        that:
+          - expected_version_revision == package_version_revision
+        success_msg: "Expected and installed version revisions match"
+        fail_msg: "Version revision mismatch! Expected revision {{ expected_version_revision }}, but found installed revision {{ package_version_revision }}"
+      when: expected_version_revision != ''
+
+    - name: Assert installed docker version is running version
+      ansible.builtin.assert:
+        that: package_version_upstream is ansible.builtin.version(running_version)
+        success_msg: "Installed and running versions match"
+        fail_msg: "Version mismatch! Installed version {{ package_version_upstream }}, but found running version {{ running_version }}"

@@ -1,0 +1,22 @@
+---
+- name: Gather version of running docker daemon
+  community.docker.docker_host_info:
+  register: running
+
+- name: Gather version of docker daemon package
+  ansible.builtin.package_facts:
+
+- name: Assert docker versions
+  vars:
+    expected_version: "{{ docker_version_expected | default('') }}"
+    package_versions: "{{ ansible_facts.packages[docker_package_name | default('docker-ce')] | map(attribute='version') | list }}"
+    running_version: "{{ running.host_info.ServerVersion }}"
+  block:  # noqa osism-fqcn
+    - name: Overview of docker versions found
+      ansible.builtin.debug:
+        msg:
+          - "Expected version: {{ expected_version }}"
+          - "Installed versions: {{ package_versions }}"
+          - "Running version: {{ running_version }}"
+    - name: Docker version assertions
+      ansible.builtin.include_tasks: "assert-versions-{{ ansible_os_family }}.yml"

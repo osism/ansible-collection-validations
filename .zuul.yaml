@@ -3,38 +3,70 @@
     name: SECRET_ANSIBLE_COLLECTION_VALIDATIONS
     data:
       DTRACK_API_KEY: !encrypted/pkcs1-oaep
-        - CjhQX4TI0WhueHLHX3YMNesb/OapiFX4NrLrNX7t1c/x6ChaMPLRS9wac6wVOfb6EBlXH
-          72IYLXDk1tWm5RGZzc9GMt0fC62X9OKxjPCdIhui/aR0GOh2HjuX1wAqjmO1Gn2WmiXcd
-          qLP9QtqLPxJ7rXk0XNLyykHpXu44g2KEzasYxOraKXekACtumCHJqSS+3kKuSdNfHj02B
-          BtCdqfdQg6IYomrBCwrddlc+uuhZti1FwdI4CMPD2Y4YNp365pa8yQlPE5o3JJ0SAR0V3
-          sgxqKQgpls0eaU66UuHXxm3sF+ijHUrMGPlqyH4p2Lf2MENN7dg7Hd4rgyG/5QGZdH+kG
-          rTEW28dJ6IkMWqGyIZIJQWcANmoyYOd5xvCFmhXJUVsJ4BOnrUWxoW5HmPsUZkVxE1UfH
-          7oJHRXIFI2Gf77/0m/ByzJqLgceV1zvjsxpbubYIsHrN7A3dvzUI+226I7ZKacQBpC9dw
-          LJrZHIM+KHwrRd/c+++j69wDC+cePuxud/MFCQuNDBc6Ys/HA07M6GqejFhdkJeY8NwfN
-          0HLPFr2XJeZkfyBkSISTg3plP0zA98zcWn/bDAUPYCaUCL2Azmu4h/yMUxqlS5UTlHuAr
-          rNfqfSGvQZOE3unhN4PUOUq6klAMIL3NjYtyMcE2TMbMcVEv+KUPVirS44JKwU=
+        - KiSDEV6zrUWTfxtl/+2idFn3b3vR1Q/p88Yoe/ype62H9Ci18KAkwSY6FZ0/eiksMcAYf
+          W0bIpSu6kIct5z1ZJ9upQKFdWDV8iyG2/dcGa3YkSMG9xmauwWBeo8zdA3R16WV07J5le
+          h1B16DfzsCG7WmL2WpF8EAgCkfEY323F90sR0hpHmNlSYWZVhwmYMX2IV+tlhmqQ6WWaH
+          +r4calkRoLvcYR7s8pp/TO50cU7Q5tnll/4BX6G6pSfl+RLDf/dVnpv1X+Tj7yEcsBA2b
+          GwJYeWFB7cUsr4PuxOq06gEXlnFogPSRpZ1Wxwtf7wKk5aczlo+4zRhWCdOQ9FZRLg/aV
+          3kCJgOzQbqzeolq1JKhhydXj+AJjGorbginMX3x0eNzFGonzDeMb3AcLC6uzVmHwqyJu7
+          Ada65ntScUb0xdtl9gslZUVzUAHhAzvp8HIkj1lwtAsXSq3bALraCuMrV8GsP5CTy1SO/
+          kNAOudYxWy+ycIfJl1GGeDMJP+xiNOlz12nviyo8a982EAScxd1I4Xx/7+FV0tgOKn/CA
+          T4hBib1SjYOMMCek+sbIGYbVjhXONNNpwYcqYBK2409Oq/hAxny7egTAkn2mZStVReJfk
+          +meOK3Khr3Aj2zk3dcew5aU86Er82FYoQkGLoztRl7JyDk1RBULSe65iEnrf2k=
       DOCKER_PASSWORD: !encrypted/pkcs1-oaep
-        - Vq/4W0+Mk9q/f+rCCsG/FUmLY0pEVwCsKqmWSOsH8Mnkmza023KATbY+U80wOZ0jDSjUx
-          AHNKRe0eDT5oRBTYTCUS13eA1pVCFaFHS9K6WdO+sQszPYfjbiz9eupLPZUwuHwf1Xurk
-          k91Hc/4/9Ju7ItqWOkYynPEFeE6Vjvm9BUCByB6IIz98R0IhbvrTj/1Wg9h82nJoRAXU7
-          2X29XGX+/sUIKnqdlnDoWQDN+/A5pSZtphz69wBh5/OL8uKmRU2Lw+C9l4OOsIJvZGJwR
-          QxBeNLF3o57KClVIaTOuZLUOihb1/hOXgeKAJW8kL3RlMhUuE6EXC5JiK2aAd1MAcbeNy
-          a/oiYPZl+HvufTuVRKzNZTPrt8yMxr9FH1fDSxvuS4VVpnFyiHPhz6eQMdvTPACkgV/7T
-          HSgqopPvn916FmbwBjB8sNY0ioZijcYqwAYeHbR0heKWTZPO8GLfGKCwTQGtBJL1HgCUy
-          eso9CHYcs2gTZSuQhSarqhiaN334OihVRDRTHu+AibOY1QkCq0Gk/c8inrmMa56OMi83s
-          c+1GeJTvaG1HsvH58cNA8b7OYWGrfGdNjhbBD6ociAJzFliol9iYQFDgTbdnK1T02JfAF
-          +A11guDd447JnDnxn1iMKwaMuaeROKEhUxJFopUlbyfmY8jf+aJna5OdjHTtw8=
+        - gOgu/5LeuimUH4d3AJjaWfkLqK0MiXR5MEIwLgKKw/BzmOVddkjKeU2odfjEQBDuCZoyc
+          BGizBLrrzL6Kiug737JlFYyrPeZ+nXQbutV62qoZn/hUuhICxSgq2/X7WuHnvgPSwdT99
+          LO5rxgeKRwmlowPPeISZ6QNakEuDnzPs9YdAmEcOLKIv+EKX2LtsMQ8O8hrIlPygQ60W9
+          hffRq8sRovAgkufHo76rTZ2GmWy30xy51HLcV1PbHRCt5IwSJcJkHA3tq6KIVHWV7KqEJ
+          rn3T7iX6oYyZE1jplZlBWoCRNRUcu9OVMODm0TvNqHWZwtxEr2j54J6ebzvCXpQSNaHc5
+          PExFB3BN2aYO6Cl2mLbGxUms7mC5S44Bf1rfQqNlRm8MNj64D+x7ixcNpS1zJ1IBwVA7V
+          1IWvy5y8TpqSKmBOv5kvR7V1lzrVj8rs4OAIfjKmz91NRwdW/5iSTR0P3WNuXpAOrlUY1
+          DZSvpJhDrFpc0S1iremfR6eypfkUOyUjIp9p/VaVpm7J5C5083Z5rcVJjzQg9QbwzNuV7
+          Vm23ab6CGTLcWbCfE9xiKhV89r4wBYqkVPKvH6cmnLc8sKbqly+iaacz2nvxtqvrT3Qlq
+          46EN4Pi+wbqf0JYdDbVptBek9s4FjSn68rWebVV0VFSS0hYxhqrlwzCTbI6+OI=
       DOCKER_USERNAME: !encrypted/pkcs1-oaep
-        - edWrcnJowWe+5vbNt1ZyZoSIuV3FqvNZ4oRrhJ5LB20oHhCa/isqRsWTy1PoAtouHg+Zm
-          tnashG+Lcxbddpm+3qZY8zloWfHqmiB+a5rPkAX/2lSAKwZ6CMMMFiTXoyV87eoZrBvW2
-          j22R4boUg9Am/PcUGL4EnzG2RQ04oXErvgytFWcWC9sbKNMFvV3RNASXke0ZxoJZTQVA2
-          Cngjt88/I5idRtdaa7JjenYOz7vGryAVQ9+fE/WaJDUhLm7Rr+n9lgjujDchkmLN1SULS
-          Mt+kE03BQUqbQVsJV4XSNwJAafuc/RBqgGP4GazstXggt5tTkNk9WoWwU/gUOV/DR/AEJ
-          M00AiUwDXxWXzS6VStjZIIjfeFDLN15jAw/oiYoNwAqcXLm6NL9T2J3D0ybrkoMiNin80
-          kx7rCcrywEBWy/aV5WGrTIw2YkwWiHL3E9W1i5GkkeixxpZHwRNB3V1DvS8iy3u9W1mPd
-          vAE+Ee0e8pJ0Ucw0R2HVKuCcA8LBWzE1NJgSP5oEPzx+1mlJTKkmKY4Sux3DeVOW4gVZQ
-          Fn0uXaiYsaRhj0wqhEF+3O1bWj2cPD1l6W+pIj8VyS384g+UCiLSJKp3QgayDiEeBWxjN
-          5+GacANYJRYozvGZhmGkJk1GPNMLnNqFYBR+4bnJJrFLPWaNzvFyngDDf0Qqrw=
+        - TEcANk5g959qJxZhaS59CSSHUF6sGM9H5K12aa2ugeI8vrI33d5xQpy54meyJPrVeyikC
+          jdnh0r2j/QKYEfbnqYfpLs7X1uBmClsf1aa7XbN3ZqzjYy2c551jZhNs+TmWyx132gMkU
+          F/y0bcrzgYgdRnEvVb2FnOsw5MiDTq7C7p+OGfmqkOEk9rN8B6CGMia6DRjXSRmbGhY3z
+          Cd9n7K6849mijst586jpfv03p1kNykE5u1W1C1lnyRYHo+4N/5nM5ewqNmwcrFbvHQ5jM
+          tIbgsBN2emztCAK3IvO+hqd6e5Rhz0P+HPEXPzVKlQxfLKrU8ZaeLPHmJV2Bq/wWHY2sn
+          3xsMeBfj3q3okQacyT9ZkLS2rK+R2edBvs2MAS9FRbJrd6d2vQC70UUZRQrrY9u9ppIbV
+          G+LypD6sPPKPW3Ciu2wiMQjcj+UgEpIJ0JrYdVD/vFLlQd4Ptdffuo0TxRg06XOIVysmW
+          q/vEgR01AfJ+OMvHFyT+uzKC97tZs5Fp7ByFQxM+tYvWOHmupqkiSE9cs+JGYKY/eUnVu
+          LJiZE0ie7VsqrJyl+8SPFZYODN40Vktv1t+Xh89U8PbT+TB+Aps5rp+ySKjjfX0SOKq0k
+          M5YfEdVPhaHzqyByHei0IbkjC4CPLmhPvMyF0nJGfMgy3oOIJl8w2X44A0udwc=
+      COSIGN_PASSWORD: !encrypted/pkcs1-oaep
+        - UwP798tcawAG8VOfM1FA3LyDIdyvgi8WROzOXCLfFTqheVtRdJHIZj9xOMSCTb/sQpPAl
+          s5W9p5ddhpm9O9Ued2eBX7Q6UCEENbRBNsXbgDxGB4Omoq0WCiS1PCRViGv+UqrjzTwIa
+          +3n7NNHSC/1US23vX671E0qluv0qc32jyBOofAyQsxkNMeWiMYM13J1aaXMKsnbS7JP1i
+          eemL6HnB/vyaw3YmvzcyanLuxPOZkTIZJNBIpuc4+wiwlAg0DF7tP8WZ0rWqKiHr7BtL7
+          q3pIhAuqP2NADRMBcFoj0EuQNr+7VStSTsf2wUwbm8ut5uohwQ9pZerAJW5YBoXgflAH8
+          U+X3+QfqrdNmg2DeBg7PPbCKLC/Lz72LsuvlMCJv7HV0ApIlrYjd/TR+MOJT3fcmnoVel
+          N9veqyNS+DxWJNv7ZOS2vlNajMKpawG50BYJjf/t1AVTkgnZZH/4gJcavRZqcNZuRP3z/
+          BPcDai4LS47+3brKPHQtCqyd67oC+VRwE/9CzshJaj9KJH3cXWWMPwtE0D6ZXUeX9Xlwf
+          /qzSc911Xgloyxne3jX1M81+ZhNTBV6pxe6YZaHrnQRdKHtIb51t595dEUjoAFK2sT6dI
+          TDWSSGJ1NKw+Kh/2fVbDtZOyHSY+tq7H/2rdpTqzI2fOValJ9Afx9rcrJBozPs=
+      COSIGN_PRIVATE_KEY: !encrypted/pkcs1-oaep
+        - OR6cw46hPLKc/Ms0cnJ1TDfar1kp61PwukbCUOp8tUeMQE0L934qykMN6013yBllSragf
+          y95AxY272DuqYKIuirYdg2zR771mUCP2VRddh6jLrdRAG1hU/xPz+K0Ffgdh6DIOAJ+9X
+          469Cne9pT6hsTbAxbUkTWvjSCAkeEqgOXOVU7BsQnh08mYJlv0IKLJuC1MoaQv/AQJcno
+          6LaAEjFmNIGZQW3aLS55Vqh1FEhDhkpvbHZLvwaOu0Ceu8QXTw5bOEoLXrIlIY7krT3F4
+          h8GM6iRcYM6xLSJda4q1MRgKo96zqo1go3cgzZBNuedEq+zYGFN+ZV1MLAy1TuyjHe3Hb
+          FBwT5zWVkWNBWXT0IbmsgBQI7ICBvBsHm5ZZV+u6cIhoErxF6IvHEmVViousPwcsQK7KW
+          nLgkU92tOE6vCgrlSEBOO/qwliiMxRbj/Ayua8F7F+a599CjvRLKsfTqsDm02T5lfaGK7
+          ND+2oRZ4HfcaZYnmZfV6NxAenG2hYcPCNIlw55QGZF526VEbQzpiyUXu/zmT+m9Y80gAD
+          cW5741CsRsbuPRcUt/5IG/8EqxdYMtp5OXg3GixwMd/ikekmUQ1iFXzY25Nqo9eTSnDfB
+          as5y12ASxRt36rMXLX09kLAc1qSB71+7mdOuQBmgm7xGm9aJuDwMcvqPMnILCA=
+        - LQudNjhpwv+wxXd7neeYWciE6VcfHDRIRz9jYl6Xfur2Y8/N3gEk3KqZz2Q6s/usZRUj6
+          oXSBGMXNYDssZAET+gWfuIr8ZyPn43HnNDeep2Rq9NTAnaxHS/MriPJCK16rBPoqXYmdy
+          stgp/GAKWEG5aNYkwL7oVXb+sZQJryp1RYNiMGV/1Ic7g/qJ0FGIdbmbMdpZE030TRj+C
+          L0vKILZBkX8zb808WHSBTPzts+1OhgODypxypz4kjetZ0XCqI2vgGl7CufTeWbLp9A9GM
+          MBYLuEH/Q5rl1aAfM5v0ymGQ7HQv5P+Hkbz5shxaAEax0PwAlLVEr0s1FY4vcY9NxrMWW
+          X4Q6ZJlJ3s3U0WcNzk8povQuD9dGtE4W2/BDrn8iC79c5Ju0S2yCNYvkUy6xeMq9CU5qF
+          DNF28bhTHmVh45L0STh2AeEHvtgshPwgKJQgyNQPPcIejdiO2pXPH7oNUgGEWnp5hCN4f
+          qbxGHV3mYUHCf+9mDMzp1E2AAw2xATpAGY7x3kiH69zALkq6dNxHQLQY2vnvz9USp/O/H
+          CLphSElihWC7tHJlUYDtxlflew2F2too1Bsw+ZICmEWg1y+sjNa/C62RtTRSymtLMGFB2
+          8Rmx/9UXk5W3FqiwOmNd6fj5A2e17HTdwxaCGqKyZ/t0LhY1B6lii9dMn03exc=
 
 - job:
     name: ansible-collection-validations-container-image-osism-ansible-push

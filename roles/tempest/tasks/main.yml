@@ -291,9 +291,9 @@
             +
             (['--exclude-regex', tempest_exclude_regex] if tempest_exclude_regex is defined and tempest_exclude_regex | length > 0 else [])
             +
-            (['--exclude-list', '/opt/tempest/exclude.lst'] if result_exclude_list.stat.exists else [])
+            (['--exclude-list', '/tempest/exclude.lst'] if result_exclude_list.stat.exists else [])
             +
-            (['--include-list', '/opt/tempest/include.lst'] if result_include_list.stat.exists else [])
+            (['--include-list', '/tempest/include.lst'] if result_include_list.stat.exists else [])
           }}
       tags: run-tempest
       block:  # noqa: osism-fqcn

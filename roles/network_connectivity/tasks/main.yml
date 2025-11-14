@@ -27,15 +27,13 @@
       - "{{ network_connectivity_ping_count }}"
       - "{{ item }}"
   vars:
-    # provided defaults for `network_connectivity_network_cidr` are redundant to the role defaults and may be removed with the fix of
-    # https://github.com/ansible/ansible-lint/issues/4173
     ip_version: >-
       {{
         'ipv4'
-        if network_connectivity_network_cidr | default('127.0.0.0/8') | ansible.utils.ipv4 | length > 0
+        if network_connectivity_network_cidr | ansible.utils.ipv4 | length > 0
         else (
           'ipv6'
-          if network_connectivity_network_cidr | default('::1/128') | ansible.utils.ipv6 | length > 0
+          if network_connectivity_network_cidr | ansible.utils.ipv6 | length > 0
           else
           None
         )

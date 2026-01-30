@@ -85,6 +85,7 @@ tempest_enable_cinder: true
 tempest_enable_designate: true
 tempest_enable_glance: true
 tempest_enable_horizon: true
+tempest_enable_keystone: true
 tempest_enable_neutron: true
 tempest_enable_nova: true
 tempest_enable_octavia: true

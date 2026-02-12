@@ -62,6 +62,11 @@ region = {{ tempest_region }}
 uri_v3 = {{ tempest_uri_v3 }}
 v3_endpoint_type = public
 
+{% if tempest_enable_keystone | bool -%}
+[identity-feature-enabled]
+security_compliance = true
+{%- endif %}
+
 {% if tempest_enable_glance | bool -%}
 [image]
 build_timeout = {{ tempest_image_build_timeout }}

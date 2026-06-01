@@ -73,7 +73,7 @@
 - name: Resolve img_file or network api extensions
   when:
     - tempest_img_file is undefined or tempest_api_extensions is undefined
-  block:  # noqa: osism-fqcn
+  block:
     - name: Get auth token
       delegate_to: localhost
       openstack.cloud.auth:
@@ -168,7 +168,7 @@
     tempest_img_file: "/tempest/{{ _img_file_name }}"
 
 - name: Resolve floating network ID
-  block:  # noqa: osism-fqcn
+  block:
     - name: Resolve floating network ID
       delegate_to: localhost
       openstack.cloud.networks_info:
@@ -185,7 +185,7 @@
 - name: Resolve flavor IDs
   when:
     - not tempest_create_flavors | bool
-  block:  # noqa: osism-fqcn
+  block:
     - name: Resolve flavor IDs
       delegate_to: localhost
       openstack.cloud.compute_flavor_info:
@@ -234,7 +234,7 @@
   when: result_include_list.stat.exists
 
 - name: Prepare and run tempest
-  block:  # noqa: osism-fqcn
+  block:
     - name: Create tempest flavors
       delegate_to: localhost
       openstack.cloud.compute_flavor:
@@ -296,7 +296,7 @@
             (['--include-list', '/tempest/include.lst'] if result_include_list.stat.exists else [])
           }}
       tags: run-tempest
-      block:  # noqa: osism-fqcn
+      block:
         - name: Register selected tempest tests
           community.docker.docker_container:
             <<: *docker_common_opt

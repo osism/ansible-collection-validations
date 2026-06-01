@@ -11,7 +11,7 @@
     expected_version: "{{ docker_version_expected | default('') }}"
     package_versions: "{{ ansible_facts.packages[docker_package_name | default('docker-ce')] | map(attribute='version') | list }}"
     running_version: "{{ running.host_info.ServerVersion }}"
-  block:  # noqa osism-fqcn
+  block:
     - name: Overview of docker versions found
       ansible.builtin.debug:
         msg:

@@ -12,7 +12,7 @@
     package_version_revision: "{{ package_version | split('-') | last if '-' in package_version else '' }}"
     _package_version_tail: "{{ (package_version | split(':'))[1:] | join(':') if ':' in package_version else package_version }}"
     package_version_upstream: "{{ (_package_version_tail | split('-'))[:-1] | join('-') if '-' in _package_version_tail else _package_version_tail }}"
-  block:  # noqa osism-fqcn
+  block:
     - name: Assert that only a single docker version is installed
       ansible.builtin.assert:
         that: package_versions | length == 1

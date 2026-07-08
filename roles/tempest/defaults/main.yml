@@ -26,7 +26,7 @@ tempest_concurrency: 1
 
 # auth
 tempest_admin_username: admin
-tempest_admin_password: password
+tempest_admin_password: "{{ keystone_admin_password | default('password') }}"
 tempest_admin_project_name: admin
 tempest_admin_domain_name: Default
 tempest_roles:

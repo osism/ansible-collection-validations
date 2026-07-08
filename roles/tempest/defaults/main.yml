@@ -29,10 +29,9 @@ tempest_admin_username: admin
 tempest_admin_password: password
 tempest_admin_project_name: admin
 tempest_admin_domain_name: Default
-tempest_roles:
-  - creator
-  - load-balancer_member
-  - member
+# Assign only the roles whose backing service is deployed: creator is created
+# by barbican, load-balancer_member by octavia (see tempest_enable_* below).
+tempest_roles: "{{ ['member'] + (['creator'] if tempest_enable_barbican | bool else []) + (['load-balancer_member'] if tempest_enable_octavia | bool else []) }}"
 
 # identity
 tempest_uri_v3: https://api.testbed.osism.xyz:5000/v3

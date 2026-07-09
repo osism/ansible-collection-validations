@@ -1,0 +1,8 @@
+---
+# NOTE: The nodes used in the CI are virtual machines with a comparatively poor
+# clock stability. Only the synchronization state itself is asserted strictly,
+# the thresholds for the quality of the synchronization are relaxed to prevent
+# false negatives.
+chrony_max_stratum: 15
+chrony_max_system_clock_deviation: 1
+chrony_max_upper_clock_error_bound: 2

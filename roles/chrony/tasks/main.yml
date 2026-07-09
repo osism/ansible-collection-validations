@@ -1,0 +1,61 @@
+---
+# source: https://github.com/osism/ansible-playbooks/blob/main/playbooks/generic/validate-ntp.yml
+
+- name: Get chrony tracking
+  ansible.builtin.command:
+    argv:
+      - /usr/bin/chronyc
+      - -c
+      - tracking
+  changed_when: false
+  failed_when: false
+  register: chrony_tracking
+
+# NOTE: `chronyc -c tracking` prints 14 comma separated fields. The reference
+# ID and the reference name are two distinct fields, hence the field count
+# exceeds the number of rows shown by `chronyc tracking` by one.
+- name: Assert that chronyd can be queried
+  ansible.builtin.assert:
+    that:
+      - chrony_tracking.rc | default(1) == 0
+      - chrony_tracking.stdout | default('') | split(',') | length == 14
+    fail_msg: >-
+      Unable to retrieve tracking information from chronyd.
+      chronyc exited with rc {{ chrony_tracking.rc | default('unknown') }}:
+      {{ chrony_tracking.stderr | default(chrony_tracking.msg) | default('') | trim }}
+
+- name: Check chrony tracking
+  vars:
+    _tracking: "{{ chrony_tracking.stdout | split(',') }}"
+  block:
+    # NOTE: A chronyd which never synchronized reports the reference ID
+    # 00000000 together with the leap status `Not synchronised`, while the
+    # reference ID 7F7F0101 indicates that only the `local` mode is operating.
+    # Neither of the two checks covers the other one.
+    - name: Assert NTP is synchronized
+      ansible.builtin.assert:
+        that:
+          - _tracking[13] != 'Not synchronised'
+          - _tracking[0] != '7F7F0101'
+        fail_msg: >-
+          NTP not synchronized (leap status: {{ _tracking[13] }},
+          reference ID: {{ _tracking[0] }})
+
+    - name: Assert NTP stratum is less than desired max
+      ansible.builtin.assert:
+        that: _tracking[2] | int <= chrony_max_stratum
+        fail_msg: "{{ _tracking[2] | int }} > {{ chrony_max_stratum }}"
+
+    - name: Assert system clock offset from NTP time is less that desired max
+      ansible.builtin.assert:
+        that: _tracking[4] | float | abs <= chrony_max_system_clock_deviation | float
+        fail_msg: "{{ _tracking[4] | float | abs }} > {{ chrony_max_system_clock_deviation | float }}"
+
+    - name: Assert NTP upper bound of clock error is less than desired max
+      vars:
+        # NOTE: Calculation of upper bound of clock error was taken from `tracking` section of
+        # https://manpages.debian.org/testing/chrony/chronyc.1.en.html#System_clock
+        _clock_error: "{{ _tracking[4] | float | abs + _tracking[11] | float + 0.5 * _tracking[10] | float }}"
+      ansible.builtin.assert:
+        that: _clock_error | float <= chrony_max_upper_clock_error_bound | float
+        fail_msg: "{{ _clock_error | float }} > {{ chrony_max_upper_clock_error_bound | float }}"

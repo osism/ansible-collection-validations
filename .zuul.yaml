@@ -94,6 +94,15 @@
       - '^molecule\/requirements\.txt$'
 
 - job:
+    name: ansible-collection-validations-molecule-chrony
+    parent: abstract-ansible-collection-validations-molecule
+    vars:
+      ansible_role: chrony
+    files:
+      - '^roles\/chrony\/.*$'
+      - '^molecule\/delegated\/[a-zA-Z0-9_-]+\/chrony.*$'
+
+- job:
     name: ansible-collection-validations-molecule-container_status
     parent: abstract-ansible-collection-validations-molecule
     vars:
@@ -151,6 +160,7 @@
     merge-mode: squash-merge
     check:
       jobs:
+        - ansible-collection-validations-molecule-chrony
         - ansible-collection-validations-molecule-container_status
         - ansible-collection-validations-molecule-kernel_version
         - ansible-collection-validations-molecule-mysql_open_files_limit

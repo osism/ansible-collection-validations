@@ -1,0 +1,38 @@
+---
+- name: Ensure EPEL repository
+  ansible.builtin.include_role:
+    name: osism.commons.repository
+  when: ansible_os_family == "RedHat"
+
+- name: Ensure chrony
+  ansible.builtin.include_role:
+    name: osism.services.chrony
+
+# NOTE: osism.services.chrony restarts chronyd from a handler, which would only
+# run at the end of this play. The wait below has to act on the chronyd that
+# converge sees, not on the one the image happened to boot with.
+- name: Restart chronyd before its synchronization is awaited
+  ansible.builtin.meta: flush_handlers
+
+# NOTE: Waiting for the first reference update is not enough. Until chronyd
+# accepts a frequency update it keeps its initial skew of 1e6 ppm, and its root
+# dispersion therefore grows by one second per second. As soon as the root
+# distance passes one second, the `local stratum 10` of osism.services.chrony
+# takes over and tracking reports the reference ID 7F7F0101 again, which is
+# exactly what the role asserts against. chronyd only leaves that state once its
+# measured skew drops below the `maxupdateskew 100.0` of the same configuration.
+# A skew of at most 1000 ppm therefore separates a settled chronyd from an
+# unsettled one by a wide margin, and it bounds the growth of the root
+# dispersion to one millisecond per second.
+#
+# The correction of at most 0.1 seconds ensures that a slew in progress does not
+# race the assertion on chrony_max_system_clock_deviation. It also makes an
+# explicit `chronyc makestep` unnecessary, the more so as the configuration
+# steps the clock by itself during the first three updates (`makestep 1 3`).
+#
+# The first accepted frequency update can require a sample beyond the initial
+# iburst, which arrives one poll interval later, hence the wait of up to 300
+# seconds (60 tries with an interval of 5 seconds).
+- name: Wait for chronyd to synchronize
+  ansible.builtin.command: /usr/bin/chronyc waitsync 60 0.1 1000 5
+  changed_when: false

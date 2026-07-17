@@ -97,6 +97,11 @@ build_timeout = {{ tempest_network_build_timeout }}
 port_security = {{ tempest_port_security | string }}
 ipv6_subnet_attributes = {{ tempest_ipv6_subnet_attributes | string }}
 api_extensions = {{ tempest_api_extensions }}
+{% if tempest_neutron_dns_domain -%}
+
+[neutron_plugin_options]
+dns_domain = {{ tempest_neutron_dns_domain }}
+{% endif -%}
 {%- endif %}
 
 {% if tempest_enable_swift | bool -%}

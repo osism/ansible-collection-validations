@@ -77,6 +77,11 @@ tempest_port_security: true
 tempest_ipv6_subnet_attributes: true
 tempest_floating_ip_network: public
 tempest_network_build_timeout: 600
+# unset (no [neutron_plugin_options] section emitted) by default, matching
+# neutron_tempest_plugin's own fallback (openstackgate.local); set this to the
+# deployment's real neutron.conf dns_domain so internal-DNS scenario tests
+# check against the right value instead of a placeholder that never matches.
+tempest_neutron_dns_domain: ""
 
 # service_available
 tempest_enable_barbican: true

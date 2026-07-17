@@ -24,6 +24,13 @@ tempest_include_list: /opt/configuration/environments/openstack/files/tempest/in
 
 tempest_concurrency: 1
 
+# When true, tempest.lib's rest_client logs full request/response headers and
+# bodies (not just "status method url" at INFO) to tempest.log -- the only way
+# to capture evidence like a console-log response body if a test needs one and
+# cleanup runs before a human can look. Off by default: full-profile runs make
+# many thousands of calls, and logging every body is a real log-volume cost.
+tempest_debug: false
+
 # auth
 tempest_admin_username: admin
 tempest_admin_password: "{{ keystone_admin_password | default('password') }}"

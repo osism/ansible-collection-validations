@@ -70,9 +70,9 @@
     that:
       - _images.results | map(attribute='images') | flatten | map(attribute='id') | list | unique | length == 2
 
-- name: Resolve img_file or network api extensions
+- name: Resolve img_file, network api extensions or octavia providers
   when:
-    - tempest_img_file is undefined or tempest_api_extensions is undefined
+    - tempest_img_file is undefined or tempest_api_extensions is undefined or (tempest_enable_octavia | bool and tempest_loadbalancer_enabled_provider_drivers is undefined)
   block:
     - name: Get auth token
       delegate_to: localhost
@@ -141,6 +141,19 @@
         method: GET
         url: "{{ _endpoints.json.endpoints | selectattr('interface', 'equalto', 'public') | selectattr('service_id', 'equalto', service_id) | map(attribute='url') | first }}/v2.0/extensions"
       register: _network_api_extensions
+
+    - name: Get Octavia providers
+      delegate_to: localhost
+      when:
+        - tempest_enable_octavia | bool
+        - tempest_loadbalancer_enabled_provider_drivers is undefined
+      vars:
+        service_id: "{{ _service_catalog.services | selectattr('type', 'equalto', 'load-balancer') | selectattr('is_enabled', 'truthy') | map(attribute='id') | first }}"
+      ansible.builtin.uri:
+        headers: *os_auth_headers
+        method: GET
+        url: "{{ _endpoints.json.endpoints | selectattr('interface', 'equalto', 'public') | selectattr('service_id', 'equalto', service_id) | map(attribute='url') | first }}/v2.0/lbaas/providers"
+      register: _octavia_providers
   always:
     - name: Revoke token
       delegate_to: localhost
@@ -159,6 +172,17 @@
     - tempest_api_extensions is undefined
   ansible.builtin.set_fact:
     tempest_api_extensions: "{{ _network_api_extensions.json.extensions | map(attribute='alias') | join(',') }}"
+
+- name: Set fact for config option enabled_provider_drivers
+  delegate_to: localhost
+  when:
+    - tempest_enable_octavia | bool
+    - tempest_loadbalancer_enabled_provider_drivers is undefined
+  ansible.builtin.set_fact:
+    tempest_loadbalancer_enabled_provider_drivers: >-
+      {{ _octavia_providers.json.providers | map(attribute='name')
+         | zip(_octavia_providers.json.providers | map(attribute='description'))
+         | map('join', ':') | list }}
 
 - name: Set fact for config option img_file
   delegate_to: localhost

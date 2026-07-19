@@ -1,5 +1,13 @@
 #!/usr/bin/env bash
 
+# Pass --exclude-list only when an exclude list was staged. tempest runs fine
+# without one -- the regex alone selects the tests -- so a deployment that ships
+# no exclude list is not forced to have this file.
+exclude_args=()
+if [[ -f {{ tempest_workdir }}/exclude.lst ]]; then
+  exclude_args=(--exclude-list /tempest/exclude.lst)
+fi
+
 docker run --rm \
   -v {{ tempest_workdir }}:/tempest \
   -v /etc/ssl/certs:/etc/ssl/certs:ro \
@@ -9,6 +17,6 @@ docker run --rm \
   run \
   --workspace-path /tempest/workspace.yaml \
   --workspace {{ tempest_workspace_name }} \
-  --exclude-list /tempest/exclude.lst \
+  "${exclude_args[@]}" \
   --regex "$1" \
   --concurrency {{ tempest_concurrency }} | tee -a {{ tempest_workdir }}/$(date +%Y%m%d-%H%M).log

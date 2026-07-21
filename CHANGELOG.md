@@ -7,6 +7,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 This file was started on March 15, 2022. Changes prior to this date are not included in the CHANGELOG.
 
+## [v0.20260721.0] - 2026-07-21
+
+### Added
+- Add opt-in `tempest_debug` variable to enable full request/response logging in tempest.conf (osism/ansible-collection-validations#272)
+- Add opt-in `tempest_neutron_dns_domain` variable to set neutron_plugin_options dns_domain in tempest.conf (osism/ansible-collection-validations#273)
+
+### Changed
+- Document the tempest role's invocation workflows in the README (osism/ansible-collection-validations#275)
+
+### Fixed
+- Fix amphora provider description string mismatch that caused octavia_tempest_plugin's test_provider_list to fail on every full-profile run (osism/ansible-collection-validations#271)
+- Derive Octavia enabled provider drivers from the live API instead of a hardcoded amphora-only list, fixing test_provider_list KeyErrors on OVN deployments (osism/ansible-collection-validations#274)
+- Fix tempest wrapper requiring an exclude list even when none was staged (osism/ansible-collection-validations#275)
+
+## [v0.20260712.0] - 2026-07-12
+
+### Fixed
+- Scope `tempest_roles` to only include roles for enabled services, avoiding failures on deployments without barbican or octavia (osism/ansible-collection-validations#269)
+- Default `tempest_admin_password` to the deployment's real admin secret via `keystone_admin_password` instead of a hardcoded value (osism/ansible-collection-validations#268)
+- Fix project board automation for fork pull requests by switching to `pull_request_target` and scoping secrets (osism/ansible-collection-validations#266)
+
+### Dependencies
+- actions/checkout v6 → v7 (osism/ansible-collection-validations#264)
+- pytest 9.1.0 → 9.1.1 (osism/ansible-collection-validations#265)
+- molecule 26.4.0 → 26.6.0 (osism/ansible-collection-validations#267)
+
+## [v0.20260615.0] - 2026-06-15
+
+### Changed
+- Drop obsolete `osism-fqcn` noqa annotations from block: tasks now that the ansible-lint rule no longer false-flags them (osism/ansible-collection-validations#262)
+- Revert redundant defaults for `network_connectivity_network_cidr` now that the underlying ansible-lint issue is fixed (osism/ansible-collection-validations#194)
+
+### Dependencies
+- molecule 26.3.0 → 26.4.0 (osism/ansible-collection-validations#258)
+- pytest 9.0.3 → 9.1.0 (osism/ansible-collection-validations#263)
+
+## [v0.20260601.0] - 2026-06-01
+
+### Added
+- Add CHANGELOG.md file to document notable changes (osism/ansible-collection-validations#256)
+- Automatically add opened issues and pull requests to the project board (osism/ansible-collection-validations#260)
+
+### Fixed
+- Add default molecule stub to silence misleading CRITICAL error when no default scenario exists (osism/ansible-collection-validations#261)
+
+### Removed
+- Remove CentOS 9 and Ubuntu 22.04 jobs from Zuul CI (osism/ansible-collection-validations#257)
+
+### Dependencies
+- molecule 25.12.0 → 26.3.0 (osism/ansible-collection-validations#255)
+- pytest 9.0.2 → 9.0.3 (osism/ansible-collection-validations#259)
+
 ## [v0.20260318.0] - 2026-03-18
 
 ### Added

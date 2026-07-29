@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 This file was started on March 15, 2022. Changes prior to this date are not included in the CHANGELOG.
 
+## [v0.20260729.0] - 2026-07-29
+
+### Added
+- Add role to validate NTP synchronization via chronyc, replacing the inline logic in ansible-playbooks' validate-ntp.yml, with configurable stratum and clock deviation thresholds and improved detection of unsynchronized hosts (osism/ansible-collection-validations#270)
+
+### Dependencies
+- actions/setup-python v6 → v7 (osism/ansible-collection-validations#277)
+
 ## [v0.20260721.0] - 2026-07-21
 
 ### Added

@@ -91,16 +91,37 @@ tempest_network_build_timeout: 600
 tempest_neutron_dns_domain: ""
 
 # service_available
-tempest_enable_barbican: true
+# The OPTIONAL services -- barbican, designate, octavia and swift -- are
+# deliberately NOT given a value here. tasks/main.yml derives each one that is
+# still undefined from the service catalog, which is the only source that
+# reflects what the cloud actually offers.
+#
+# kolla's enable_<service> is not such a source: for a role running in the
+# openstack environment those variables resolve from inventory, not from the
+# kolla environment where a deployment actually sets them, so they can read
+# "enabled" for a service that was never deployed. Getting this wrong is not a
+# partial failure -- tempest_roles above asks keystone for roles that only
+# barbican and octavia create, and an absent role fails every test using
+# dynamic credentials, in setUpClass.
+#
+#   tempest_enable_barbican    <- 'key-manager' in the catalog
+#   tempest_enable_designate   <- 'dns'
+#   tempest_enable_octavia     <- 'load-balancer'
+#   tempest_enable_swift       <- 'object-store'
+#
+# Set any of them explicitly to override the derived value. Setting ALL of them
+# skips the catalog lookup entirely, so the role can run against a cloud whose
+# catalog cannot be enumerated.
+
+# The core services: an OSISM deployment without these is not a deployment worth
+# running tempest against, so they stay unconditional. horizon is not a catalog
+# service at all (it registers no keystone endpoint), so it cannot be discovered.
 tempest_enable_cinder: true
-tempest_enable_designate: true
 tempest_enable_glance: true
 tempest_enable_horizon: true
 tempest_enable_keystone: true
 tempest_enable_neutron: true
 tempest_enable_nova: true
-tempest_enable_octavia: true
-tempest_enable_swift: true
 
 # image
 tempest_image_build_timeout: 600

@@ -70,6 +70,52 @@
     that:
       - _images.results | map(attribute='images') | flatten | map(attribute='id') | list | unique | length == 2
 
+# Derive the optional-service flags, so a deployment that does not run barbican,
+# designate, octavia or swift neither advertises them in [service_available] nor
+# asks keystone for roles that only those services create. This must stay ahead
+# of the first consumer of a tempest_enable_* flag.
+#
+# Skipped when every flag is already set: an operator who configures all four
+# explicitly can then run against a cloud whose catalog cannot be enumerated.
+- name: Get service catalog for service discovery
+  delegate_to: localhost
+  when: >-
+    tempest_enable_barbican is undefined
+    or tempest_enable_designate is undefined
+    or tempest_enable_octavia is undefined
+    or tempest_enable_swift is undefined
+  openstack.cloud.catalog_service_info:
+    <<: *os_auth
+  register: _catalog
+
+- name: Derive the optional service flags from the catalog
+  when: not (_catalog.skipped | default(false))
+  vars:
+    _types: "{{ _catalog.services | default([]) | selectattr('is_enabled', 'truthy') | map(attribute='type') | list }}"
+  block:
+    # An empty catalog would resolve every optional service to disabled and skip
+    # its tests silently, which looks just like a correct run on a minimal
+    # deployment. Check the lookup result itself: a cloud need not register
+    # keystone in its own catalog, so the presence of any particular service --
+    # identity included -- says nothing about whether the lookup worked.
+    - name: Assert the service catalog was returned
+      ansible.builtin.assert:
+        that:
+          - _catalog.services is defined
+          - _catalog.services | length > 0
+        fail_msg: >-
+          The service catalog came back empty, so the optional services cannot be
+          discovered. Set tempest_enable_barbican, tempest_enable_designate,
+          tempest_enable_octavia and tempest_enable_swift explicitly to run
+          tempest without service discovery.
+
+    - name: Set the optional service flags
+      ansible.builtin.set_fact:
+        tempest_enable_barbican: "{{ tempest_enable_barbican | default('key-manager' in _types) }}"
+        tempest_enable_designate: "{{ tempest_enable_designate | default('dns' in _types) }}"
+        tempest_enable_octavia: "{{ tempest_enable_octavia | default('load-balancer' in _types) }}"
+        tempest_enable_swift: "{{ tempest_enable_swift | default('object-store' in _types) }}"
+
 - name: Resolve img_file, network api extensions or octavia providers
   when:
     - tempest_img_file is undefined or tempest_api_extensions is undefined or (tempest_enable_octavia | bool and tempest_loadbalancer_enabled_provider_drivers is undefined)

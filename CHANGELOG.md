@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 This file was started on March 15, 2022. Changes prior to this date are not included in the CHANGELOG.
 
+## [v0.20260924.0] - 2026-09-24
+
+### Changed
+- Derive the optional tempest service flags for barbican, designate, octavia and swift from the service catalog instead of defaulting them to true, with explicit `tempest_enable_*` values still taking precedence (osism/ansible-collection-validations#280)
+
+### Fixed
+- Fix the tempest role failing at "Get Octavia providers" and requesting missing keystone roles on deployments without optional services (osism/ansible-collection-validations#280)
+- Fix tempest volume tests failing with EndpointNotFound by dropping the `volumev3` catalog_type pin (osism/ansible-collection-validations#281)
+
+### Dependencies
+- molecule 26.6.0 → 26.8.0 (osism/ansible-collection-validations#279)
+
 ## [v0.20260729.0] - 2026-07-29
 
 ### Added

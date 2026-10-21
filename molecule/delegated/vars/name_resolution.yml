@@ -1,0 +1,11 @@
+---
+hosts_type: template
+hosts_interface: "{{ ansible_default_ipv4.interface }}"
+# NOTE: A Jinja dictionary, because the keys of a YAML mapping are not
+# templated. The entry for the hostname of the node keeps it resolvable, the
+# template of osism.commons.hosts would drop it otherwise.
+hosts_additional_entries: "{{ {'name-resolution.molecule.test': '192.0.2.10', ansible_hostname: ansible_default_ipv4.address} }}"
+
+kolla_internal_fqdn: name-resolution.molecule.test
+kolla_internal_vip_address: 192.0.2.10
+kolla_external_fqdn: registry.osism.tech

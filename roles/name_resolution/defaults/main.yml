@@ -1,0 +1,34 @@
+---
+# NOTE: The defaults read the inventory variables of osism.commons.resolvconf
+# and osism/defaults and fall back to the defaults of osism.commons.resolvconf,
+# which are not visible from this role. They have to follow when
+# osism.commons.resolvconf changes one of its defaults.
+name_resolution_check_resolved: "{{ enable_resolvconf | default(true) }}"
+name_resolution_resolv_conf: "{{ resolvconf_file | default('/etc/resolv.conf') }}"
+name_resolution_nameservers: "{{ resolvconf_nameserver | default((resolvconf_nameserver_default | default(['9.9.9.9', '149.112.112.112'])) + (resolvconf_nameserver_extra | default([]))) }}"
+name_resolution_dns_over_tls: "{{ resolvconf_dns_over_tls | default(false) }}"
+# NOTE: _name_resolution_external_names is set by the tasks before this value
+# is used.
+name_resolution_nameserver_query: "{{ (_name_resolution_external_names + (name_resolution_endpoints | list)) | first | default('') }}"
+name_resolution_nameserver_timeout: 2
+
+# NOTE: Undefined on purpose. When unset, the role derives the external names
+# from the registry variables, the package sources of the host, or the proxy.
+# name_resolution_external_names: []
+name_resolution_external_names_extra: []
+
+# NOTE: A name mapped to an empty string only has to resolve. When both FQDNs
+# are equal, the internal entry wins. Names that are IP addresses are left out.
+name_resolution_endpoints: >-
+  {{
+    dict([
+      [kolla_external_fqdn | default(''), ''],
+      [kolla_internal_fqdn | default(''), kolla_internal_vip_address | default('')]
+    ])
+    | dict2items
+    | rejectattr('key', 'match', '^$|^[0-9.]+$|.*:')
+    | items2dict
+  }}
+
+name_resolution_check_reverse: true
+name_resolution_lookup_deadline: 120

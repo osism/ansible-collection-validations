@@ -1,0 +1,406 @@
+---
+# NOTE: Every message starts with the label of its check, so the operator can
+# tell from the message alone which check failed. The checks stop at the first
+# failure, and the message of a check lists every item of it that fails. The
+# role only reads: nothing is installed, written or restarted.
+
+- name: Check that systemd-resolved runs and resolv.conf points at its stub
+  when: name_resolution_check_resolved | bool
+  block:
+    - name: Get the state of systemd-resolved
+      ansible.builtin.command:
+        argv:
+          - systemctl
+          - is-active
+          - systemd-resolved.service
+      changed_when: false
+      check_mode: false
+      failed_when: false
+      register: _name_resolution_resolved_state
+
+    - name: Read the resolver configuration
+      ansible.builtin.slurp:
+        src: "{{ name_resolution_resolv_conf }}"
+      failed_when: false
+      register: _name_resolution_resolv_conf_content
+
+    - name: Assert that systemd-resolved is active
+      ansible.builtin.assert:
+        that: _name_resolution_resolved_state.rc == 0
+        fail_msg: >-
+          resolved: systemd-resolved.service is
+          {{ _name_resolution_resolved_state.stdout | default('') | trim | default('unknown', true) }},
+          expected active
+        quiet: true
+
+    - name: Assert that the resolver configuration can be read
+      ansible.builtin.assert:
+        that: _name_resolution_resolv_conf_content.content is defined
+        fail_msg: >-
+          resolved: {{ name_resolution_resolv_conf }} cannot be read:
+          {{ _name_resolution_resolv_conf_content.msg | default('unknown error') }}
+        quiet: true
+
+    - name: Assert that the resolver configuration lists only the stub resolver
+      vars:
+        _nameservers: >-
+          {{
+            (_name_resolution_resolv_conf_content.content | b64decode).splitlines()
+            | select('match', '^\s*nameserver\s+\S')
+            | map('regex_replace', '^\s*nameserver\s+(\S+).*$', '\1')
+            | list
+          }}
+      ansible.builtin.assert:
+        that: _nameservers == ['127.0.0.53']
+        fail_msg: >-
+          resolved: {{ name_resolution_resolv_conf }} lists the nameservers {{ _nameservers }},
+          expected only the stub resolver 127.0.0.53
+        quiet: true
+
+- name: Report that the resolved and nameservers checks are skipped
+  ansible.builtin.debug:
+    msg: "resolved: check skipped because name_resolution_check_resolved is false; nameservers are not checked either"
+  when: not name_resolution_check_resolved | bool
+
+- name: Collect the hosts of the package sources
+  ansible.builtin.command:
+    argv:
+      - python3
+      - -c
+      - "{{ _name_resolution_probe }}"
+      - sources
+    stdin: "{}"
+  changed_when: false
+  check_mode: false
+  failed_when: false
+  register: _name_resolution_sources
+  when:
+    - name_resolution_external_names is not defined
+    - _name_resolution_proxy_hosts | length == 0
+
+- name: Assert that the probe collected the hosts of the package sources
+  ansible.builtin.assert:
+    that: _name_resolution_sources.rc == 0
+    fail_msg: >-
+      probe: name_resolution_probe.py sources exited with rc {{ _name_resolution_sources.rc }}:
+      {{ (_name_resolution_sources.stderr | default('') | trim) or (_name_resolution_sources.msg | default('') | trim) }}
+    quiet: true
+  when: _name_resolution_sources is not skipped
+
+- name: Set the external names
+  ansible.builtin.set_fact:
+    _name_resolution_external_names: >-
+      {{
+        (
+          (
+            name_resolution_external_names
+            if name_resolution_external_names is defined
+            else (
+              _name_resolution_proxy_hosts
+              if _name_resolution_proxy_hosts | length > 0
+              else _name_resolution_registry_hosts + (_name_resolution_sources.stdout | from_json).hosts
+            )
+          )
+          + name_resolution_external_names_extra
+        )
+        | unique
+      }}
+
+- name: Report the package source entries that are not checked
+  ansible.builtin.debug:
+    msg: "external: not checked: {{ (_name_resolution_sources.stdout | from_json).skipped | join('; ') }}"
+  when:
+    - _name_resolution_sources is not skipped
+    - (_name_resolution_sources.stdout | from_json).skipped | length > 0
+
+- name: Check that the upstream nameservers answer
+  when: name_resolution_check_resolved | bool
+  block:
+    - name: Report that the nameservers check is skipped
+      ansible.builtin.debug:
+        msg: >-
+          nameservers: check skipped because DNS over TLS is enforced (DNSOverTLS=yes),
+          which a plain DNS probe does not test
+      when: _name_resolution_dns_over_tls_enforced | bool
+
+    - name: Probe the upstream nameservers
+      when: not _name_resolution_dns_over_tls_enforced | bool
+      block:
+        - name: Assert that upstream nameservers are configured
+          ansible.builtin.assert:
+            that: name_resolution_nameservers | length > 0
+            fail_msg: "nameservers: no upstream nameserver is configured"
+            quiet: true
+
+        - name: Assert that a name to query is configured
+          ansible.builtin.assert:
+            that: name_resolution_nameserver_query | length > 0
+            fail_msg: "nameservers: name_resolution_nameserver_query is empty, set it to a name the upstream nameservers answer"
+            quiet: true
+
+        - name: Query each upstream nameserver
+          ansible.builtin.command:
+            argv:
+              - python3
+              - -c
+              - "{{ _name_resolution_probe }}"
+              - nameservers
+            stdin: >-
+              {{
+                {
+                  'servers': name_resolution_nameservers,
+                  'query': name_resolution_nameserver_query,
+                  'timeout': name_resolution_nameserver_timeout | float
+                } | to_json
+              }}
+          changed_when: false
+          check_mode: false
+          failed_when: false
+          register: _name_resolution_nameservers_probe
+
+        - name: Assert that the probe queried the upstream nameservers
+          ansible.builtin.assert:
+            that: _name_resolution_nameservers_probe.rc == 0
+            fail_msg: >-
+              probe: name_resolution_probe.py nameservers exited with rc {{ _name_resolution_nameservers_probe.rc }}:
+              {{ (_name_resolution_nameservers_probe.stderr | default('') | trim) or (_name_resolution_nameservers_probe.msg | default('') | trim) }}
+            quiet: true
+
+        - name: Assert that every upstream nameserver answers
+          vars:
+            _failures: >-
+              {%- set out = [] -%}
+              {%- for r in (_name_resolution_nameservers_probe.stdout | from_json).servers if r.rcode != 'NOERROR' -%}
+              {%- if r.rcode is not none -%}
+              {%- set _ = out.append(r.entry ~ ' answered ' ~ r.rcode ~ ' for ' ~ name_resolution_nameserver_query) -%}
+              {%- else -%}
+              {%- set _ = out.append(r.entry ~ ' did not answer a query for ' ~ name_resolution_nameserver_query ~ ': ' ~ r.error) -%}
+              {%- endif -%}
+              {%- endfor -%}
+              {{ out }}
+          ansible.builtin.assert:
+            that: _failures | length == 0
+            fail_msg: "nameservers: {{ _failures | join('; ') }}"
+            quiet: true
+
+- name: Set the names and addresses to look up
+  ansible.builtin.set_fact:
+    _name_resolution_lookups: >-
+      {%- set out = [] -%}
+      {%- for h in _name_resolution_inventory_hosts -%}
+      {%- set _ = out.append({'name': h.name, 'family': 'ipv4'}) -%}
+      {%- set _ = out.append({'name': h.name.split('.')[0], 'family': 'ipv4'}) -%}
+      {%- endfor -%}
+      {%- for name, address in (hosts_additional_entries | default({}, true)).items() -%}
+      {%- set _ = out.append({'name': name, 'family': 'ipv6' if ':' in address | string else 'ipv4'}) -%}
+      {%- endfor -%}
+      {%- for name in _name_resolution_external_names -%}
+      {%- set _ = out.append({'name': name, 'family': 'any'}) -%}
+      {%- endfor -%}
+      {%- for name, address in name_resolution_endpoints.items() -%}
+      {%- set _ = out.append({'name': name, 'family': ('ipv6' if ':' in address | string else 'ipv4') if address else 'any'}) -%}
+      {%- endfor -%}
+      {{ out }}
+    _name_resolution_reverse: >-
+      {{ _name_resolution_inventory_hosts | map(attribute='address') | unique | list if name_resolution_check_reverse | bool else [] }}
+
+- name: Look up the names and addresses
+  ansible.builtin.command:
+    argv:
+      - python3
+      - -c
+      - "{{ _name_resolution_probe }}"
+      - lookup
+    stdin: >-
+      {{
+        {
+          'lookups': _name_resolution_lookups,
+          'reverse': _name_resolution_reverse,
+          'deadline': name_resolution_lookup_deadline | float
+        } | to_json
+      }}
+  changed_when: false
+  check_mode: false
+  failed_when: false
+  register: _name_resolution_lookup
+
+- name: Assert that the probe looked up the names and addresses
+  ansible.builtin.assert:
+    that: _name_resolution_lookup.rc == 0
+    fail_msg: >-
+      probe: name_resolution_probe.py lookup exited with rc {{ _name_resolution_lookup.rc }}:
+      {{ (_name_resolution_lookup.stderr | default('') | trim) or (_name_resolution_lookup.msg | default('') | trim) }}
+    quiet: true
+
+- name: Index the results of the lookups
+  ansible.builtin.set_fact:
+    _name_resolution_forward: >-
+      {%- set out = {} -%}
+      {%- for r in (_name_resolution_lookup.stdout | from_json).lookups -%}
+      {%- set _ = out.update({r.name ~ '|' ~ r.family: r}) -%}
+      {%- endfor -%}
+      {{ out }}
+    _name_resolution_backward: >-
+      {%- set out = {} -%}
+      {%- for r in (_name_resolution_lookup.stdout | from_json).reverse -%}
+      {%- set _ = out.update({r.address: r}) -%}
+      {%- endfor -%}
+      {{ out }}
+
+- name: Report that the hosts check has no hosts
+  ansible.builtin.debug:
+    msg: "hosts: check skipped because the group {{ _name_resolution_hosts_group }} has no hosts"
+  when: groups[_name_resolution_hosts_group] | default([]) | length == 0
+
+- name: Report the inventory hosts without an address
+  ansible.builtin.debug:
+    msg: "hosts: not checked because osism.commons.hosts assigns them no address: {{ _name_resolution_unassigned_hosts | join(', ') }}"
+  when: _name_resolution_unassigned_hosts | length > 0
+
+- name: Report the inventory hosts named by an IP address
+  ansible.builtin.debug:
+    msg: "hosts: not checked because the inventory name is an IP address: {{ _name_resolution_ip_named_hosts | join(', ') }}"
+  when: _name_resolution_ip_named_hosts | length > 0
+
+- name: Report the short names that several inventory hosts share
+  ansible.builtin.debug:
+    msg: >-
+      hosts: short names not checked because several inventory hosts share them:
+      {% for label, names in _name_resolution_shared_labels.items() %}{{ label }} ({{ names | join(', ') }}){{ '' if loop.last else '; ' }}{% endfor %}
+  when: _name_resolution_shared_labels | length > 0
+
+- name: Assert that the inventory host names resolve to their addresses
+  vars:
+    _failures: >-
+      {%- set out = [] -%}
+      {%- for h in _name_resolution_inventory_hosts -%}
+      {%- set label = h.name.split('.')[0] -%}
+      {%- set names = [h.name] + ([label] if label != h.name and label not in _name_resolution_shared_labels else []) -%}
+      {%- for n in names -%}
+      {%- set r = _name_resolution_forward[n ~ '|ipv4'] -%}
+      {%- if r.error is not none -%}
+      {%- set _ = out.append(n ~ ' does not resolve (' ~ r.error ~ '), expected ' ~ h.address) -%}
+      {%- elif r.addresses | unique | sort != [h.address] -%}
+      {%- set _ = out.append(n ~ ' resolves to ' ~ r.addresses ~ ', expected ' ~ h.address) -%}
+      {%- endif -%}
+      {%- endfor -%}
+      {%- endfor -%}
+      {{ out }}
+    _hint: >-
+      {{
+        'Check the DNS records (hosts_use_dns_as_single_source_of_truth is true).'
+        if hosts_use_dns_as_single_source_of_truth | default(false) | bool
+        else 'Check /etc/hosts (written by osism.commons.hosts).'
+      }}
+  ansible.builtin.assert:
+    that: _failures | length == 0
+    fail_msg: "hosts: {{ _failures | join('; ') }}. {{ _hint }}"
+    quiet: true
+
+- name: Check that the addresses of the inventory hosts resolve back to them
+  when: name_resolution_check_reverse | bool
+  block:
+    - name: Report the addresses that several inventory hosts share
+      ansible.builtin.debug:
+        msg: >-
+          reverse: not checked because several inventory hosts share the address:
+          {% for address, names in _name_resolution_shared_addresses.items() %}{{ address }} ({{ names | join(', ') }}){{ '' if loop.last else '; ' }}{% endfor %}
+      when: _name_resolution_shared_addresses | length > 0
+
+    - name: Assert that the addresses of the inventory hosts resolve back to them
+      vars:
+        _failures: >-
+          {%- set out = [] -%}
+          {%- for h in _name_resolution_inventory_hosts if h.address not in _name_resolution_shared_addresses -%}
+          {%- set r = _name_resolution_backward[h.address] -%}
+          {%- if r.error is not none -%}
+          {%- set _ = out.append(h.address ~ ' does not resolve back (' ~ r.error ~ '), expected ' ~ h.name) -%}
+          {%- else -%}
+          {%- set returned = r.name | lower | regex_replace('\.$', '') -%}
+          {%- set expected = h.name | lower -%}
+          {%- if returned != expected and ('.' in expected or returned.split('.')[0] != expected) -%}
+          {%- set _ = out.append(h.address ~ ' resolves back to ' ~ r.name ~ ', expected ' ~ h.name) -%}
+          {%- endif -%}
+          {%- endif -%}
+          {%- endfor -%}
+          {{ out }}
+      ansible.builtin.assert:
+        that: _failures | length == 0
+        fail_msg: "reverse: {{ _failures | join('; ') }}"
+        quiet: true
+
+- name: Report that the reverse check is skipped
+  ansible.builtin.debug:
+    msg: "reverse: check skipped because name_resolution_check_reverse is false"
+  when: not name_resolution_check_reverse | bool
+
+- name: Report that the additional-entries check is skipped
+  ansible.builtin.debug:
+    msg: "additional-entries: check skipped because hosts_additional_entries is empty"
+  when: hosts_additional_entries | default({}, true) | length == 0
+
+- name: Assert that the additional entries resolve to their addresses
+  vars:
+    _failures: >-
+      {%- set out = [] -%}
+      {%- for name, address in (hosts_additional_entries | default({}, true)).items() -%}
+      {%- set r = _name_resolution_forward[name ~ '|' ~ ('ipv6' if ':' in address | string else 'ipv4')] -%}
+      {%- if r.error is not none -%}
+      {%- set _ = out.append(name ~ ' does not resolve (' ~ r.error ~ '), expected ' ~ address) -%}
+      {%- elif r.addresses | unique | sort != [address | string] -%}
+      {%- set _ = out.append(name ~ ' resolves to ' ~ r.addresses ~ ', expected ' ~ address) -%}
+      {%- endif -%}
+      {%- endfor -%}
+      {{ out }}
+  ansible.builtin.assert:
+    that: _failures | length == 0
+    fail_msg: "additional-entries: {{ _failures | join('; ') }}"
+    quiet: true
+  when: hosts_additional_entries | default({}, true) | length > 0
+
+- name: Report that the external check is skipped
+  ansible.builtin.debug:
+    msg: "external: check skipped because no external names are configured"
+  when: _name_resolution_external_names | length == 0
+
+- name: Assert that the external names resolve
+  vars:
+    _failures: >-
+      {%- set out = [] -%}
+      {%- for name in _name_resolution_external_names -%}
+      {%- set r = _name_resolution_forward[name ~ '|any'] -%}
+      {%- if r.error is not none or r.addresses | length == 0 -%}
+      {%- set _ = out.append(name ~ ' does not resolve (' ~ (r.error or 'no address') ~ ')') -%}
+      {%- endif -%}
+      {%- endfor -%}
+      {{ out }}
+  ansible.builtin.assert:
+    that: _failures | length == 0
+    fail_msg: "external: {{ _failures | join('; ') }}"
+    quiet: true
+  when: _name_resolution_external_names | length > 0
+
+- name: Report that the endpoints check is skipped
+  ansible.builtin.debug:
+    msg: "endpoints: check skipped because no endpoint FQDN is configured"
+  when: name_resolution_endpoints | length == 0
+
+- name: Assert that the endpoint FQDNs resolve
+  vars:
+    _failures: >-
+      {%- set out = [] -%}
+      {%- for name, address in name_resolution_endpoints.items() -%}
+      {%- set family = ('ipv6' if ':' in address | string else 'ipv4') if address else 'any' -%}
+      {%- set r = _name_resolution_forward[name ~ '|' ~ family] -%}
+      {%- if r.error is not none or r.addresses | length == 0 -%}
+      {%- set _ = out.append(name ~ ' does not resolve (' ~ (r.error or 'no address') ~ ')') -%}
+      {%- elif address and r.addresses | unique | sort != [address | string] -%}
+      {%- set _ = out.append(name ~ ' resolves to ' ~ r.addresses ~ ', expected ' ~ address) -%}
+      {%- endif -%}
+      {%- endfor -%}
+      {{ out }}
+  ansible.builtin.assert:
+    that: _failures | length == 0
+    fail_msg: "endpoints: {{ _failures | join('; ') }}"
+    quiet: true
+  when: name_resolution_endpoints | length > 0

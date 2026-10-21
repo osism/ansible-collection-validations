@@ -1,0 +1,313 @@
+---
+# NOTE: The test runs as the operator user, like the systemd units of the
+# Docker Compose services, so the pull uses the registry credentials of that
+# user and the mirror and proxy settings of the daemon.
+
+- name: Pull and run the test image as the operator user
+  become: true
+  become_user: "{{ docker_ready_operator_user }}"
+  vars:
+    _dns_skip_reason: >-
+      {{
+        'docker_ready_dns_check_name is empty'
+        if docker_ready_dns_check_name | length == 0
+        else 'docker_ready_dns_check_name is localhost'
+        if docker_ready_dns_check_name == 'localhost'
+        else 'docker_ready_dns_check_name is an IPv4 address'
+        if docker_ready_dns_check_name is match('^[0-9]+([.][0-9]+){3}$')
+        else ''
+      }}
+    # NOTE: A container on a bridge network reaches its own loopback interface,
+    # not the one of the host.
+    _network_skip_reason: >-
+      {{
+        'docker_ready_network_check_host is empty'
+        if docker_ready_network_check_host | length == 0
+        else 'docker_ready_network_check_host is localhost'
+        if docker_ready_network_check_host == 'localhost'
+        else 'docker_ready_network_check_host is a loopback address'
+        if docker_ready_network_check_host is match('^127[.]')
+        else ''
+      }}
+  block:
+    # NOTE: An interrupted earlier run can leave the container or the network
+    # behind, which would make `docker run` fail with a name conflict.
+    - name: Remove leftovers of an earlier run
+      ansible.builtin.command:
+        argv: "{{ item }}"
+      loop:
+        - [docker, container, rm, --force, "{{ docker_ready_resource_name }}"]
+        - [docker, network, rm, "{{ docker_ready_resource_name }}"]
+      changed_when: false
+      failed_when: false
+
+    - name: Check whether the test image is present
+      ansible.builtin.command:
+        argv:
+          - docker
+          - image
+          - inspect
+          - "{{ docker_ready_image }}"
+      changed_when: false
+      failed_when: false
+      register: docker_ready_image_inspect
+
+    - name: Remember whether the test image was present before
+      ansible.builtin.set_fact:
+        docker_ready_image_preexisting: "{{ docker_ready_image_inspect.rc == 0 }}"
+
+    - name: Run the test container
+      block:
+        # NOTE: timeout kills the Docker client, which makes the daemon cancel
+        # the pull. The task keyword timeout would leave the pull running, and
+        # the image would land after the cleanup.
+        - name: Pull the test image
+          ansible.builtin.command:
+            argv:
+              - timeout
+              - "{{ docker_ready_pull_timeout | string }}"
+              - docker
+              - pull
+              - "{{ docker_ready_image }}"
+          changed_when: false
+          failed_when: false
+          register: docker_ready_pull
+
+        - name: Assert that the test image was pulled
+          ansible.builtin.assert:
+            that: docker_ready_pull.rc == 0
+            fail_msg: >-
+              {{
+                'pull: docker pull ' ~ docker_ready_image ~ ' did not finish within '
+                ~ docker_ready_pull_timeout ~ ' seconds'
+                if docker_ready_pull.rc == 124
+                else 'pull: cannot pull ' ~ docker_ready_image ~ ': ' ~ docker_ready_pull.stderr | trim
+              }}
+            quiet: true
+
+        - name: Create the test network
+          ansible.builtin.command:
+            argv:
+              - docker
+              - network
+              - create
+              - --driver
+              - bridge
+              - "{{ docker_ready_resource_name }}"
+          changed_when: false
+          failed_when: false
+          register: docker_ready_network_create
+
+        # NOTE: --rm removes the container as soon as sleep ends, even if the
+        # cleanup below never runs. --entrypoint bypasses the entrypoint of the
+        # image.
+        - name: Start the test container
+          ansible.builtin.command:
+            argv:
+              - docker
+              - run
+              - --detach
+              - --rm
+              - --name
+              - "{{ docker_ready_resource_name }}"
+              - --network
+              - "{{ docker_ready_resource_name }}"
+              - --entrypoint
+              - sleep
+              - "{{ docker_ready_image }}"
+              - "{{ docker_ready_container_timeout | string }}"
+          changed_when: false
+          failed_when: false
+          register: docker_ready_container_run
+          when: docker_ready_network_create.rc == 0
+
+        - name: Assert that the test container runs
+          ansible.builtin.assert:
+            that:
+              - docker_ready_network_create.rc == 0
+              - docker_ready_container_run.rc | default(1) == 0
+            fail_msg: >-
+              container: {{
+                'docker network create failed: ' ~ docker_ready_network_create.stderr | trim
+                if docker_ready_network_create.rc != 0
+                else 'docker run failed: ' ~ docker_ready_container_run.stderr | default('') | trim
+              }}
+            quiet: true
+
+        - name: Inspect the test container
+          ansible.builtin.command:
+            argv:
+              - docker
+              - container
+              - inspect
+              - "{{ docker_ready_resource_name }}"
+          changed_when: false
+          failed_when: false
+          register: docker_ready_container_inspect
+
+        # NOTE: The daemon merges its log options into the log configuration
+        # of a container when it creates the container, and stores every value
+        # as a string.
+        - name: Assert the log options of the test container
+          vars:
+            _log_config: "{{ (docker_ready_container_inspect.stdout | from_json | first).HostConfig.LogConfig }}"
+            _expected: >-
+              {{
+                dict(
+                  docker_ready_log_opts | dict2items | map(attribute='key')
+                  | zip(docker_ready_log_opts | dict2items | map(attribute='value') | map('string'))
+                )
+              }}
+          ansible.builtin.assert:
+            that:
+              - docker_ready_container_inspect.rc == 0
+              - _log_config.Type == docker_ready_log_driver
+              - _log_config.Config | default({}, true) == _expected
+            fail_msg: >-
+              {{
+                'log-opts: cannot inspect the test container: ' ~ docker_ready_container_inspect.stderr | trim
+                if docker_ready_container_inspect.rc != 0
+                else 'log-opts: the test container logs with ' ~ _log_config.Type ~ ' '
+                     ~ _log_config.Config | default({}, true) ~ ', expected ' ~ docker_ready_log_driver ~ ' ' ~ _expected
+              }}
+            quiet: true
+
+        - name: Read the limits of the test container
+          ansible.builtin.command:
+            argv:
+              - docker
+              - exec
+              - "{{ docker_ready_resource_name }}"
+              - cat
+              - /proc/1/limits
+          changed_when: false
+          failed_when: false
+          register: docker_ready_container_limits
+
+        - name: Assert the default ulimits of the test container
+          vars:
+            _row_name: "{{ docker_ready_ulimit_proc_names[item.key] | default('') }}"
+            _row: "{{ docker_ready_container_limits.stdout_lines | select('match', _row_name ~ ' ') | first | default('') }}"
+            _actual: "{{ ((_row | replace(_row_name, '', 1)).split() + ['missing', 'missing'])[:2] }}"
+            _expected: "{{ [item.value.Soft, item.value.Hard] | map('string') | map('regex_replace', '^-1$', 'unlimited') | list }}"
+          ansible.builtin.assert:
+            that:
+              - docker_ready_container_limits.rc == 0
+              - _row_name | length > 0
+              - _actual == _expected
+            fail_msg: >-
+              {{
+                'default-ulimits: cannot read the limits of the test container: '
+                ~ docker_ready_container_limits.stderr | trim
+                if docker_ready_container_limits.rc != 0
+                else "default-ulimits: no /proc limits row known for ulimit '" ~ item.key ~ "'"
+                if _row_name | length == 0
+                else 'default-ulimits: ' ~ item.key ~ ' is soft ' ~ _actual[0] ~ ' and hard ' ~ _actual[1]
+                     ~ ' in the test container, expected soft ' ~ _expected[0] ~ ' and hard ' ~ _expected[1]
+              }}
+            quiet: true
+          loop: "{{ docker_ready_default_ulimits | dict2items }}"
+          loop_control:
+            label: "{{ item.key }}"
+
+        - name: Show why the name resolution check is skipped
+          ansible.builtin.debug:
+            msg: "dns: check skipped because {{ _dns_skip_reason }}"
+          when: _dns_skip_reason | length > 0
+
+        - name: Resolve a name in the test container
+          ansible.builtin.command:
+            argv:
+              - docker
+              - exec
+              - "{{ docker_ready_resource_name }}"
+              - getent
+              - hosts
+              - "{{ docker_ready_dns_check_name }}"
+          changed_when: false
+          failed_when: false
+          register: docker_ready_container_dns
+          when: _dns_skip_reason | length == 0
+
+        - name: Assert that the test container resolves names
+          ansible.builtin.assert:
+            that: docker_ready_container_dns.rc == 0
+            fail_msg: >-
+              dns: the test container cannot resolve {{ docker_ready_dns_check_name }}
+              (getent exited with {{ docker_ready_container_dns.rc }})
+            quiet: true
+          when: _dns_skip_reason | length == 0
+
+        - name: Show why the network access check is skipped
+          ansible.builtin.debug:
+            msg: "network: check skipped because {{ _network_skip_reason }}"
+          when: _network_skip_reason | length > 0
+
+        - name: Connect from the test container
+          ansible.builtin.command:
+            argv:
+              - docker
+              - exec
+              - "{{ docker_ready_resource_name }}"
+              - nc
+              - -z
+              - -w
+              - "5"
+              - "{{ docker_ready_network_check_host }}"
+              - "{{ docker_ready_network_check_port | string }}"
+          changed_when: false
+          failed_when: false
+          register: docker_ready_container_network
+          when: _network_skip_reason | length == 0
+
+        - name: Assert that the test container has network access
+          ansible.builtin.assert:
+            that: docker_ready_container_network.rc == 0
+            fail_msg: >-
+              network: the test container cannot connect to
+              {{ docker_ready_network_check_host }}:{{ docker_ready_network_check_port }}
+            quiet: true
+          when: _network_skip_reason | length == 0
+
+      always:
+        - name: Remove the test container, network and image
+          ansible.builtin.command:
+            argv: "{{ item }}"
+          loop: >-
+            {{
+              [
+                ['docker', 'container', 'rm', '--force', docker_ready_resource_name],
+                ['docker', 'network', 'rm', docker_ready_resource_name]
+              ]
+              + ([['docker', 'image', 'rm', docker_ready_image]] if not docker_ready_image_preexisting | bool else [])
+            }}
+          changed_when: false
+          failed_when: false
+
+        - name: Look for what the test left behind
+          ansible.builtin.command:
+            argv: "{{ item.argv }}"
+          loop: >-
+            {{
+              [
+                {'label': 'container ' ~ docker_ready_resource_name,
+                 'argv': ['docker', 'container', 'inspect', docker_ready_resource_name]},
+                {'label': 'network ' ~ docker_ready_resource_name,
+                 'argv': ['docker', 'network', 'inspect', docker_ready_resource_name]}
+              ]
+              + ([{'label': 'image ' ~ docker_ready_image, 'argv': ['docker', 'image', 'inspect', docker_ready_image]}]
+                 if not docker_ready_image_preexisting | bool else [])
+            }}
+          loop_control:
+            label: "{{ item.label }}"
+          changed_when: false
+          failed_when: false
+          register: docker_ready_leftovers
+
+        - name: Assert that the test left nothing behind
+          vars:
+            _left: "{{ docker_ready_leftovers.results | selectattr('rc', 'equalto', 0) | map(attribute='item.label') | list }}"
+          ansible.builtin.assert:
+            that: _left | length == 0
+            fail_msg: "cleanup: left behind: {{ _left | join(', ') }}"
+            quiet: true

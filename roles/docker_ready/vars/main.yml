@@ -1,0 +1,30 @@
+---
+docker_ready_resource_name: osism-validations-docker-ready
+# NOTE: A pull from an HTTPS registry goes through the HTTPS proxy. Docker
+# treats a proxy URL without a scheme as an http URL.
+docker_ready_proxy_url: >-
+  {{
+    (docker_ready_proxy_https if docker_ready_proxy_https | length > 0 else docker_ready_proxy_http)
+    | regex_replace('^(?![A-Za-z][A-Za-z0-9+.-]*://)', 'http://')
+  }}
+docker_ready_dockerhub_registries:
+  - docker.io
+  - index.docker.io
+  - registry-1.docker.io
+  - registry.hub.docker.com
+docker_ready_ulimit_proc_names:
+  core: Max core file size
+  cpu: Max cpu time
+  data: Max data size
+  fsize: Max file size
+  locks: Max file locks
+  memlock: Max locked memory
+  msgqueue: Max msgqueue size
+  nice: Max nice priority
+  nofile: Max open files
+  nproc: Max processes
+  rss: Max resident set
+  rtprio: Max realtime priority
+  rttime: Max realtime timeout
+  sigpending: Max pending signals
+  stack: Max stack size

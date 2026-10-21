@@ -1,0 +1,33 @@
+---
+docker_ready_operator_user: "{{ operator_user | default('dragon') }}"
+
+docker_ready_docker_service_name: "{{ docker_service_name | default('docker') }}"
+docker_ready_containerd_service_name: "{{ containerd_service_name | default('containerd') }}"
+docker_ready_check_containerd: "{{ docker_manage_containerd | default(true) }}"
+docker_ready_socket: /var/run/docker.sock
+
+# NOTE: The expected daemon configuration reads the inventory variables of
+# osism.services.docker and falls back to the defaults of that role, which are
+# not visible from this role.
+docker_ready_storage_driver: "{{ 'overlayfs' if docker_storage_containerd_snapshotter | default(false) | bool else docker_storage_driver | default('overlay2') }}"
+docker_ready_log_driver: "{{ docker_log_driver | default('json-file') }}"
+docker_ready_log_opts: "{{ docker_log_opts | default({'max-size': '10m', 'max-file': 3}) }}"
+docker_ready_live_restore: "{{ docker_live_restore | default(true) }}"
+docker_ready_default_ulimits: "{{ docker_default_ulimits | default({'nofile': {'Name': 'nofile', 'Soft': 262144, 'Hard': 1048576}}) }}"
+docker_ready_default_runtime: "{{ docker_default_runtime | default('runc') }}"
+docker_ready_registry_mirrors: "{{ docker_registry_mirrors | default([]) }}"
+docker_ready_insecure_registries: "{{ docker_insecure_registries | default([]) }}"
+docker_ready_proxy_enabled: "{{ docker_configure_proxy | default(false) }}"
+docker_ready_proxy_http: "{{ docker_proxy_http | default('http://proxy.tld:8080') }}"
+docker_ready_proxy_https: "{{ docker_proxy_https | default(docker_ready_proxy_http) }}"
+docker_ready_proxy_no_proxy: "{{ docker_proxy_no_proxy | default((docker_proxy_no_proxy_default | default(['localhost', '127.0.0.1'])) + (docker_proxy_no_proxy_extra | default([]))) }}"
+
+docker_ready_image: "{{ docker_registry_ansible | default('registry.osism.tech') }}/osism/rsync:3.5.0"
+docker_ready_registry: "{{ docker_ready_image.split('/')[0] if '/' in docker_ready_image else '' }}"
+# NOTE: With a proxy, the proxy resolves the name of the registry, so the test
+# container has to resolve only the name of the proxy.
+docker_ready_dns_check_name: "{{ docker_ready_proxy_url | urlsplit('hostname') | default('', true) if docker_ready_proxy_enabled | bool else docker_ready_registry | regex_replace(':[0-9]+$', '') }}"
+docker_ready_network_check_host: "{{ docker_ready_proxy_url | urlsplit('hostname') | default('', true) if docker_ready_proxy_enabled | bool else docker_ready_dns_check_name }}"
+docker_ready_network_check_port: "{{ (docker_ready_proxy_url | urlsplit('port') or (443 if docker_ready_proxy_url is match('https://') else 80)) if docker_ready_proxy_enabled | bool else (docker_ready_registry.split(':')[1] if ':' in docker_ready_registry else 443) }}"
+docker_ready_pull_timeout: 300
+docker_ready_container_timeout: 300

@@ -1,0 +1,241 @@
+---
+# NOTE: Every assertion message starts with the label of its check, so the
+# operator can tell from the message alone which check failed. The checks stop
+# at the first failure.
+
+- name: Assert that the test image is not pulled from Docker Hub
+  ansible.builtin.assert:
+    that:
+      - docker_ready_image | length > 0
+      - "'/' in docker_ready_image"
+      - "'.' in docker_ready_registry or ':' in docker_ready_registry or docker_ready_registry == 'localhost'"
+      - docker_ready_registry not in docker_ready_dockerhub_registries
+    fail_msg: >-
+      {{
+        'image-registry: docker_ready_image is empty'
+        if docker_ready_image | length == 0
+        else "image-registry: '" ~ docker_ready_image ~ "' would be pulled from Docker Hub;"
+             ~ " set docker_ready_image to an image in the registry this installation uses"
+      }}
+    quiet: true
+
+- name: Gather service facts
+  ansible.builtin.service_facts:
+
+- name: Assert that the Docker services are running and enabled
+  vars:
+    _service: "{{ ansible_facts.services[item ~ '.service'] | default({}) }}"
+  ansible.builtin.assert:
+    that:
+      - _service | length > 0
+      - _service.state | default('') == 'running'
+      - _service.status | default('') == 'enabled'
+    fail_msg: >-
+      {{
+        'services: ' ~ item ~ '.service is not installed'
+        if _service | length == 0
+        else 'services: ' ~ item ~ '.service is ' ~ _service.state | default('unknown')
+             ~ ' and ' ~ _service.status | default('unknown') ~ ', expected running and enabled'
+      }}
+    quiet: true
+  loop: "{{ [docker_ready_docker_service_name] + ([docker_ready_containerd_service_name] if docker_ready_check_containerd | bool else []) }}"
+
+- name: Ping the Docker daemon on its socket
+  become: true
+  ansible.builtin.uri:
+    unix_socket: "{{ docker_ready_socket }}"
+    url: http://localhost/_ping
+    return_content: true
+  failed_when: false
+  register: docker_ready_ping
+
+- name: Get the information of the Docker daemon
+  become: true
+  ansible.builtin.uri:
+    unix_socket: "{{ docker_ready_socket }}"
+    url: http://localhost/info
+    return_content: true
+  failed_when: false
+  register: docker_ready_info
+
+- name: Assert that the Docker daemon answers on its socket
+  ansible.builtin.assert:
+    that:
+      - docker_ready_ping.status == 200
+      - docker_ready_ping.content | default('') == 'OK'
+      - docker_ready_info.status == 200
+      - docker_ready_info.json is defined
+    fail_msg: >-
+      socket: the Docker daemon does not answer on {{ docker_ready_socket }}
+      (/_ping: {{ docker_ready_ping.status }} {{ docker_ready_ping.msg | default('') }};
+      /info: {{ docker_ready_info.status }} {{ docker_ready_info.msg | default('') }})
+    quiet: true
+
+- name: Check the effective configuration of the Docker daemon
+  vars:
+    _info: "{{ docker_ready_info.json }}"
+  block:
+    - name: Assert the storage driver
+      ansible.builtin.assert:
+        that: _info.Driver == docker_ready_storage_driver
+        fail_msg: "storage-driver: daemon uses '{{ _info.Driver }}', expected '{{ docker_ready_storage_driver }}'"
+        quiet: true
+
+    - name: Assert the log driver
+      ansible.builtin.assert:
+        that: _info.LoggingDriver == docker_ready_log_driver
+        fail_msg: "log-driver: daemon uses '{{ _info.LoggingDriver }}', expected '{{ docker_ready_log_driver }}'"
+        quiet: true
+
+    - name: Assert live restore
+      ansible.builtin.assert:
+        that: _info.LiveRestoreEnabled == docker_ready_live_restore | bool
+        fail_msg: "live-restore: daemon has live restore {{ _info.LiveRestoreEnabled }}, expected {{ docker_ready_live_restore | bool }}"
+        quiet: true
+
+    - name: Assert the default runtime
+      ansible.builtin.assert:
+        that: _info.DefaultRuntime == docker_ready_default_runtime
+        fail_msg: "default-runtime: daemon uses '{{ _info.DefaultRuntime }}', expected '{{ docker_ready_default_runtime }}'"
+        quiet: true
+
+    # NOTE: The daemon reports every registry mirror with a trailing slash.
+    - name: Assert the registry mirrors
+      vars:
+        _actual: "{{ _info.RegistryConfig.Mirrors | default([], true) | map('regex_replace', '/$', '') | sort }}"
+        _expected: "{{ docker_ready_registry_mirrors | map('regex_replace', '/$', '') | sort }}"
+      ansible.builtin.assert:
+        that: _actual == _expected
+        fail_msg: "registry-mirrors: daemon uses {{ _actual }}, expected {{ _expected }}"
+        quiet: true
+
+    # NOTE: The daemon lists an insecure registry given by name in IndexConfigs
+    # and one given as a CIDR in InsecureRegistryCIDRs, which always contains
+    # the loopback networks. It strips a scheme from the configured value.
+    - name: Assert the insecure registries
+      vars:
+        _actual: >-
+          {{
+            (
+              (
+                _info.RegistryConfig.IndexConfigs | default({}, true) | dict2items
+                | map(attribute='value') | rejectattr('Secure') | map(attribute='Name') | list
+              )
+              + (
+                _info.RegistryConfig.InsecureRegistryCIDRs | default([], true)
+                | reject('in', ['127.0.0.0/8', '::1/128']) | list
+              )
+            )
+            | unique | sort
+          }}
+        _expected: >-
+          {{
+            docker_ready_insecure_registries
+            | map('regex_replace', '^https?://', '') | map('regex_replace', '/$', '')
+            | unique | sort
+          }}
+      ansible.builtin.assert:
+        that: _actual == _expected
+        fail_msg: "insecure-registries: daemon uses {{ _actual }}, expected {{ _expected }}"
+        quiet: true
+
+    # NOTE: The daemon reports the user information of a proxy URL, which runs
+    # up to the last @ before the first / after the scheme, as xxxxx:xxxxx,
+    # but not for a URL without a scheme. Both sides are masked the same way,
+    # so the message never shows a password.
+    - name: Assert the proxy settings
+      vars:
+        _mask: '^((?:[A-Za-z][A-Za-z0-9+.-]*://)?)[^/]*@'
+        _masked: '\1xxxxx:xxxxx@'
+        _actual:
+          http: "{{ _info.HttpProxy | regex_replace(_mask, _masked) }}"
+          https: "{{ _info.HttpsProxy | regex_replace(_mask, _masked) }}"
+          no_proxy: "{{ _info.NoProxy }}"
+        _expected:
+          http: "{{ docker_ready_proxy_http | regex_replace(_mask, _masked) if docker_ready_proxy_enabled | bool else '' }}"
+          https: "{{ docker_ready_proxy_https | regex_replace(_mask, _masked) if docker_ready_proxy_enabled | bool else '' }}"
+          no_proxy: "{{ docker_ready_proxy_no_proxy | join(',') if docker_ready_proxy_enabled | bool else '' }}"
+      ansible.builtin.assert:
+        that: _actual == _expected
+        fail_msg: "proxy: daemon uses {{ _actual }}, expected {{ _expected }}"
+        quiet: true
+
+- name: Check whether the operator user exists
+  ansible.builtin.command:
+    argv:
+      - id
+      - -u
+      - "{{ docker_ready_operator_user }}"
+  changed_when: false
+  failed_when: false
+  register: docker_ready_operator_id
+
+- name: Assert that the operator user exists
+  ansible.builtin.assert:
+    that: docker_ready_operator_id.rc == 0
+    fail_msg: "operator-user: the user {{ docker_ready_operator_user }} does not exist"
+    quiet: true
+
+- name: Check the Docker client of the operator user
+  become: true
+  become_user: "{{ docker_ready_operator_user }}"
+  block:
+    - name: Talk to the Docker daemon as the operator user
+      ansible.builtin.command:
+        argv:
+          - docker
+          - version
+      changed_when: false
+      failed_when: false
+      register: docker_ready_operator_version
+
+    - name: Assert that the operator user can talk to the Docker daemon
+      ansible.builtin.assert:
+        that: docker_ready_operator_version.rc == 0
+        fail_msg: >-
+          operator-socket: {{ docker_ready_operator_user }} cannot talk to the Docker daemon:
+          {{ docker_ready_operator_version.stderr | trim }}
+        quiet: true
+
+    - name: Get the Docker Compose version as the operator user
+      ansible.builtin.command:
+        argv:
+          - docker
+          - compose
+          - version
+      changed_when: false
+      failed_when: false
+      register: docker_ready_operator_compose
+
+    - name: Assert that the Docker Compose plugin is available
+      ansible.builtin.assert:
+        that: docker_ready_operator_compose.rc == 0
+        fail_msg: >-
+          compose: docker compose does not work for {{ docker_ready_operator_user }}:
+          {{ docker_ready_operator_compose.stderr | trim }}
+        quiet: true
+
+- name: Gather fact 'python'
+  ansible.builtin.setup:
+    filter: "python"
+
+- name: Import the Python Docker SDK
+  ansible.builtin.command:
+    argv:
+      - "{{ ansible_facts.python.executable }}"
+      - -c
+      - "import docker; print(docker.__version__)"
+  changed_when: false
+  failed_when: false
+  register: docker_ready_python_sdk
+
+- name: Assert that the Python Docker SDK is importable
+  ansible.builtin.assert:
+    that: docker_ready_python_sdk.rc == 0
+    success_msg: "python-sdk: Docker SDK {{ docker_ready_python_sdk.stdout | trim }} in {{ ansible_facts.python.executable }}"
+    fail_msg: >-
+      python-sdk: {{ ansible_facts.python.executable }} cannot import the Docker SDK:
+      {{ docker_ready_python_sdk.stderr_lines | default([''], true) | last }}
+
+- name: Include the pull and run test
+  ansible.builtin.include_tasks: container.yml

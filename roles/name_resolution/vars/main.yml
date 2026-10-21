@@ -1,0 +1,89 @@
+---
+# NOTE: The selection of hosts and the interface fallback mirror the template
+# of osism.commons.hosts (hosts-template.j2), which OSISM uses with
+# hosts_type: template. A host the template writes no line for is not checked.
+_name_resolution_hosts_group: "{{ hosts_group_name | default('all') }}"
+_name_resolution_candidate_hosts: >-
+  {%- set out = [] -%}
+  {%- for h in groups[_name_resolution_hosts_group] | default([]) | sort -%}
+  {%- set hv = hostvars[h] | default(none) -%}
+  {%- if h not in hosts_ignore | default([]) and hv is not none and hv['hosts_enable'] | default(hosts_enable | default(true)) | bool -%}
+  {%- set _ = out.append(h) -%}
+  {%- endif -%}
+  {%- endfor -%}
+  {{ out }}
+# NOTE: The first label of an inventory name like 10.0.0.5 is 10, which
+# getaddrinfo parses as the address 0.0.0.10.
+_name_resolution_ip_named_hosts: "{{ _name_resolution_candidate_hosts | select('match', '^[0-9.]+$|.*:') | list }}"
+_name_resolution_inventory_hosts: >-
+  {%- set out = [] -%}
+  {%- for h in _name_resolution_candidate_hosts | reject('match', '^[0-9.]+$|.*:') -%}
+  {%- set hv = hostvars[h] -%}
+  {%- set iface = 'ansible_' ~ (hv['hosts_interface'] if hv['hosts_interface'] is defined else hv['internal_interface'] | default('lo')) -%}
+  {%- if hv[iface] is defined and hv[iface]['ipv4'] is defined and hv[iface]['ipv4']['address'] is defined -%}
+  {%- set _ = out.append({'name': h, 'address': hv[iface]['ipv4']['address']}) -%}
+  {%- endif -%}
+  {%- endfor -%}
+  {{ out }}
+_name_resolution_unassigned_hosts: >-
+  {{
+    _name_resolution_candidate_hosts
+    | reject('match', '^[0-9.]+$|.*:')
+    | difference(_name_resolution_inventory_hosts | map(attribute='name'))
+    | list
+  }}
+# NOTE: A short name or an address that several inventory hosts share cannot
+# resolve to each of them, so it is not checked.
+_name_resolution_shared_labels: >-
+  {%- set by_label = {} -%}
+  {%- for h in _name_resolution_inventory_hosts -%}
+  {%- set _ = by_label.setdefault(h.name.split('.')[0], []).append(h.name) -%}
+  {%- endfor -%}
+  {%- set out = {} -%}
+  {%- for label, names in by_label.items() if names | length > 1 -%}
+  {%- set _ = out.update({label: names}) -%}
+  {%- endfor -%}
+  {{ out }}
+_name_resolution_shared_addresses: >-
+  {%- set by_address = {} -%}
+  {%- for h in _name_resolution_inventory_hosts -%}
+  {%- set _ = by_address.setdefault(h.address, []).append(h.name) -%}
+  {%- endfor -%}
+  {%- set out = {} -%}
+  {%- for address, names in by_address.items() if names | length > 1 -%}
+  {%- set _ = out.update({address: names}) -%}
+  {%- endfor -%}
+  {{ out }}
+
+# NOTE: Only host names leave these lists, so credentials in a proxy URL never
+# reach a message, a command line or the input of the probe. A proxy URL
+# without a scheme is an http URL.
+_name_resolution_registry_hosts: >-
+  {{
+    [
+      docker_registry_ansible | default('registry.osism.tech'),
+      docker_registry_kolla | default('registry.osism.tech'),
+      ceph_docker_registry | default('registry.osism.tech')
+    ]
+    | select
+    | map('regex_replace', '^[A-Za-z][A-Za-z0-9+.-]*://', '')
+    | map('regex_replace', '/.*$', '')
+    | map('regex_replace', ':[0-9]+$', '')
+    | unique
+    | list
+  }}
+_name_resolution_proxy_hosts: >-
+  {{
+    (proxy_proxies | default({}, true)).values()
+    | select
+    | map('regex_replace', '^(?![A-Za-z][A-Za-z0-9+.-]*://)', 'http://')
+    | map('urlsplit', 'hostname')
+    | select
+    | unique
+    | list
+    if proxy_enable | default(true) | bool
+    else []
+  }}
+
+_name_resolution_dns_over_tls_enforced: "{{ name_resolution_dns_over_tls | string | lower in ['yes', 'true', '1'] }}"
+_name_resolution_probe: "{{ lookup('ansible.builtin.file', 'name_resolution_probe.py') }}"

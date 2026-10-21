@@ -1,0 +1,51 @@
+---
+# NOTE: osism.commons.resolvconf replaces the upstream nameservers of the node.
+# The node keeps the nameservers it has, so the job does not depend on whether
+# the cloud lets the node reach the default nameservers of that role.
+# systemd-resolved lists its upstream nameservers in
+# /run/systemd/resolve/resolv.conf when it is already active.
+- name: Check for the resolv.conf of systemd-resolved
+  ansible.builtin.stat:
+    path: /run/systemd/resolve/resolv.conf
+  register: _prepare_resolved_resolv_conf
+
+- name: Read the upstream nameservers of the node
+  ansible.builtin.slurp:
+    src: "{{ '/run/systemd/resolve/resolv.conf' if _prepare_resolved_resolv_conf.stat.exists else '/etc/resolv.conf' }}"
+  register: _prepare_resolv_conf
+
+- name: Set the upstream nameservers of the node
+  ansible.builtin.set_fact:
+    _prepare_nameservers: >-
+      {{
+        (
+          (_prepare_resolv_conf.content | b64decode).splitlines()
+          | select('match', '^\s*nameserver\s+\S')
+          | map('regex_replace', '^\s*nameserver\s+(\S+).*$', '\1')
+          | reject('in', ['127.0.0.53', '127.0.0.54'])
+          | unique
+          | list
+        )[:3]
+      }}
+
+- name: Assert that the node has an upstream nameserver
+  ansible.builtin.assert:
+    that: _prepare_nameservers | length > 0
+    fail_msg: "prepare: no upstream nameserver found on this node"
+    quiet: true
+
+- name: Write the upstream nameservers for converge
+  ansible.builtin.copy:
+    content: "{{ {'resolvconf_nameserver': _prepare_nameservers} | to_nice_yaml }}"
+    dest: "{{ prepared_vars_path }}/name_resolution.yml"
+    mode: '0644'
+
+- name: Ensure resolvconf
+  ansible.builtin.include_role:
+    name: osism.commons.resolvconf
+  vars:
+    resolvconf_nameserver: "{{ _prepare_nameservers }}"
+
+- name: Ensure hosts
+  ansible.builtin.include_role:
+    name: osism.commons.hosts

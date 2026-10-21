@@ -112,6 +112,15 @@
       - '^molecule\/delegated\/[a-zA-Z0-9_-]+\/container_status.*$'
 
 - job:
+    name: ansible-collection-validations-molecule-docker_ready
+    parent: abstract-ansible-collection-validations-molecule
+    vars:
+      ansible_role: docker_ready
+    files:
+      - '^roles\/docker_ready\/.*$'
+      - '^molecule\/delegated\/[a-zA-Z0-9_-]+\/docker_ready.*$'
+
+- job:
     name: ansible-collection-validations-molecule-kernel_version
     parent: abstract-ansible-collection-validations-molecule
     vars:
@@ -162,6 +171,7 @@
       jobs:
         - ansible-collection-validations-molecule-chrony
         - ansible-collection-validations-molecule-container_status
+        - ansible-collection-validations-molecule-docker_ready
         - ansible-collection-validations-molecule-kernel_version
         - ansible-collection-validations-molecule-mysql_open_files_limit
         - ansible-collection-validations-molecule-stress

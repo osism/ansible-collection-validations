@@ -1,0 +1,13 @@
+---
+- name: Ensure EPEL repository
+  ansible.builtin.include_role:
+    name: osism.commons.repository
+  when: ansible_os_family == "RedHat"
+
+- name: Ensure docker
+  ansible.builtin.include_role:
+    name: osism.services.docker
+
+- name: Ensure docker compose
+  ansible.builtin.include_role:
+    name: osism.commons.docker_compose

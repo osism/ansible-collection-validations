@@ -1,0 +1,9 @@
+---
+operator_user: zuul
+operator_group: zuul
+
+# NOTE: The CI job points ANSIBLE_PYTHON_INTERPRETER at the molecule venv,
+# which has no Docker SDK. OSISM sets ansible_python_interpreter to the system
+# Python (osism/defaults all/100-ansible.yml), and the python-sdk check has to
+# test that one.
+ansible_python_interpreter: /usr/bin/python3

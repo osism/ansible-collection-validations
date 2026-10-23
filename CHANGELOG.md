@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 This file was started on March 15, 2022. Changes prior to this date are not included in the CHANGELOG.
 
+## [v0.20261023.0] - 2026-10-23
+
+### Added
+- Add docker_ready role to validate that Docker on a host is ready for the Docker Compose based services of osism.services and kolla-ansible, with a molecule test for the role (osism/ansible-collection-validations#285)
+
+### Dependencies
+- molecule 26.8.0 → 26.10.0 (osism/ansible-collection-validations#283, osism/ansible-collection-validations#284)
+
 ## [v0.20260924.0] - 2026-09-24
 
 ### Changed

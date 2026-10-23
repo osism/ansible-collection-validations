@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 This file was started on March 15, 2022. Changes prior to this date are not included in the CHANGELOG.
 
+## [v0.20261023.0] - 2026-10-23
+
+### Changed
+
+- chore(deps): update dependency molecule to v26.9.0 (osism/ansible-collection-validations#283)
+- chore(deps): update dependency molecule to v26.10.0 (osism/ansible-collection-validations#284)
+- Add role to validate that Docker is ready for OSISM services (osism/ansible-collection-validations#285)
+
 ## [v0.20260924.0] - 2026-09-24
 
 ### Changed

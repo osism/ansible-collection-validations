@@ -10,3 +10,12 @@ chrony_max_system_clock_deviation: 0.005
 #
 # [1]: https://docs.ceph.com/en/latest/rados/configuration/mon-config-ref/#confval-mon_clock_drift_allowed
 chrony_max_upper_clock_error_bound: "{{ chrony_max_system_clock_deviation + 0.02 }}"
+
+# NOTE: ceph warns when it detects a clock drift above 0.05 seconds between
+# monitors [1]. The comparison fails when two compared nodes differ by more
+# than `chrony_max_clock_difference` seconds.
+chrony_max_clock_difference: 0.05
+# NOTE: An empty value selects the NTP server the first synchronized node of
+# the run tracks.
+chrony_reference_server: ""
+chrony_reference_timeout: 30

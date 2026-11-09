@@ -1,22 +1,65 @@
 ---
-# NOTE: This mirrors the routed fabric OSISM recommends: every node carries
-# its own /32 and /128 on a dummy interface named loopback0, with an MTU of
-# 9000 (network_dummy_interface_mtu of osism.commons.network). The addresses
-# come from the documentation ranges and are reachable only on this node.
+# NOTE: This mirrors the routed fabric OSISM recommends. This host and a peer
+# each carry their own /32 and /128 on a dummy interface named loopback0 with
+# an MTU of 9000, and reach each other over a routed link with a smaller MTU.
+# The peer lives in the network namespace molecule-peer, the link is a veth
+# pair with an MTU of 1400, and the routes to the loopback addresses point at
+# it. The IPv6 route to the peer has an MTU of 1300. The addresses come from the documentation ranges.
 - name: Ensure ping is installed
   become: true
   ansible.builtin.package:
     name: iputils-ping
     state: present
 
-- name: Ensure dummy interface loopback0 with test addresses
+- name: Ensure the routed test topology
   become: true
   ansible.builtin.shell:
     executable: /bin/bash
     cmd: |
       set -euo pipefail
+      peer="nsenter --net=/run/netns/molecule-peer ip"
+      ip netns list | grep -qw molecule-peer || ip netns add molecule-peer
+      $peer link set lo up
+
       ip link show loopback0 >/dev/null 2>&1 || ip link add loopback0 type dummy
       ip link set loopback0 mtu 9000 up
       ip address replace {{ network_connectivity_test_ipv4 }}/32 dev loopback0
       ip -6 address replace {{ network_connectivity_test_ipv6 }}/128 dev loopback0 nodad
+
+      $peer link show loopback0 >/dev/null 2>&1 || $peer link add loopback0 type dummy
+      $peer link set loopback0 mtu 9000 up
+      $peer address replace {{ network_connectivity_test_peer_ipv4 }}/32 dev loopback0
+      $peer -6 address replace {{ network_connectivity_test_peer_ipv6 }}/128 dev loopback0 nodad
+
+      if ! ip link show veth-host >/dev/null 2>&1; then
+        ip link add veth-host type veth peer name veth-peer
+        ip link set veth-peer netns molecule-peer
+      fi
+      ip link set veth-host mtu 1400 up
+      $peer link set veth-peer mtu 1400 up
+
+      # IPv6 neighbour discovery only answers for addresses on the receiving
+      # interface, so the /128 routes need a next hop on the link. Like BGP
+      # unnumbered, use link-local addresses, fixed here to be known.
+      ip -6 address replace fe80::1/64 dev veth-host nodad
+      $peer -6 address replace fe80::2/64 dev veth-peer nodad
+
+      ip route replace {{ network_connectivity_test_peer_ipv4 }}/32 dev veth-host
+      # The IPv6 route carries its own, smaller MTU, which has to win over
+      # the MTU of veth-host.
+      ip -6 route replace {{ network_connectivity_test_peer_ipv6 }}/128 via fe80::2 dev veth-host mtu 1300
+      $peer route replace {{ network_connectivity_test_ipv4 }}/32 dev veth-peer
+      $peer -6 route replace {{ network_connectivity_test_ipv6 }}/128 via fe80::1 dev veth-peer
   changed_when: true
+
+# NOTE: Make sure the topology works before the role is tested on it.
+- name: Wait for the peer to answer
+  ansible.builtin.command: ping -c 1 -W 1 -I {{ item.0 }} {{ item.1 }}
+  loop:
+    - ["{{ network_connectivity_test_ipv4 }}", "{{ network_connectivity_test_peer_ipv4 }}"]
+    - ["{{ network_connectivity_test_ipv6 }}", "{{ network_connectivity_test_peer_ipv6 }}"]
+  register: result
+  until: result.rc == 0
+  retries: 10
+  delay: 1
+  changed_when: false

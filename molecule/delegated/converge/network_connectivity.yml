@@ -30,3 +30,30 @@
   ansible.builtin.assert:
     that:
       - ping.results | rejectattr('skipped', 'defined') | map(attribute='item') | list == [network_connectivity_test_ipv4]
+
+# NOTE: No host has an address in this network, so there is nothing to ping.
+# The role has to fail instead of passing without having tested anything.
+- name: Check a network without host addresses
+  block:
+    - name: Run the role on a network without host addresses
+      ansible.builtin.include_role:
+        name: network_connectivity
+      vars:
+        network_connectivity_group:
+          - "{{ inventory_hostname }}"
+          - molecule-peer
+        network_connectivity_network_cidr: 203.0.113.0/24
+
+    - name: Record that the role passed
+      ansible.builtin.set_fact:
+        network_connectivity_test_empty_msg: passed
+  rescue:
+    - name: Record why the role failed
+      ansible.builtin.set_fact:
+        network_connectivity_test_empty_msg: "{{ ansible_failed_result.msg }}"
+
+- name: Assert that the role failed for lack of addresses
+  ansible.builtin.assert:
+    that:
+      - "'No address' in network_connectivity_test_empty_msg"
+    fail_msg: "Expected the role to fail for lack of addresses, got: {{ network_connectivity_test_empty_msg }}"

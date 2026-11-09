@@ -7,25 +7,7 @@
   ansible.builtin.assert:
     that: network_connectivity_network_cidr | ansible.utils.ipaddr is truthy
 
-- name: Run ping check with maximum possible length
-  ansible.builtin.command:
-    argv:
-      - /bin/ping
-      # quiet
-      - -q
-      # do not fragment
-      - -M
-      - do
-      # set source IP
-      - -I
-      - "{{ ip_address }}"
-      # use MTU sized packets
-      - -s
-      - "{{ mtu | int - ip_header_size | int - icmp_header_size | int }}"
-      # send specified packet count
-      - -c
-      - "{{ network_connectivity_ping_count }}"
-      - "{{ item }}"
+- name: Check connectivity to the other hosts
   vars:
     ip_version: >-
       {{
@@ -38,7 +20,7 @@
           None
         )
       }}
-    ip_address: >-
+    source_addresses: >-
       {{
         ansible_facts
         | dict2items
@@ -49,8 +31,8 @@
         | map(attribute='address')
         | ansible.utils.ipaddr(network_connectivity_network_cidr)
         | list
-        | first
       }}
+    ip_address: "{{ source_addresses | first }}"
     mtu: >-
       {{
         ansible_facts
@@ -76,28 +58,65 @@
         )
       }}
     icmp_header_size: '8'
-  loop: >-
-    {{
-      network_connectivity_group
-      | difference([inventory_hostname])
-      | map('extract', hostvars, 'ansible_facts')
-      | map('dict2items')
-      | map('map', attribute='value')
-      | map('selectattr', ip_version, 'defined')
-      | map('map', attribute=ip_version)
-      | map('selectattr', 'address', 'defined')
-      | map('map', attribute='address')
-      | map('ansible.utils.ipaddr', network_connectivity_network_cidr)
-      | list
-      | flatten
-    }}
-  register: ping
-  changed_when: false
+    target_addresses: >-
+      {{
+        network_connectivity_group
+        | difference([inventory_hostname])
+        | map('extract', hostvars, 'ansible_facts')
+        | map('dict2items')
+        | map('map', attribute='value')
+        | map('selectattr', ip_version, 'defined')
+        | map('map', attribute=ip_version)
+        | map('selectattr', 'address', 'defined')
+        | map('map', attribute='address')
+        | map('ansible.utils.ipaddr', network_connectivity_network_cidr)
+        | list
+        | flatten
+      }}
+  block:
+    # NOTE: Without an address to ping the ping loop below is empty and the
+    # role would pass without having tested anything.
+    - name: Assert that this host has an address in the network
+      ansible.builtin.assert:
+        that: source_addresses | length > 0
+        fail_msg: >-
+          No address of {{ inventory_hostname }} is in
+          {{ network_connectivity_network_cidr }}, nothing can be tested.
 
-- name: Assert that ping check was successful
-  ansible.builtin.assert:
-    that: item.rc == 0
-    quiet: true
-  loop: "{{ ping.results }}"
-  loop_control:
-    label: "{{ item.stdout }}"
+    - name: Assert that the other hosts have addresses in the network
+      ansible.builtin.assert:
+        that: target_addresses | length > 0
+        fail_msg: >-
+          No address of the other hosts in network_connectivity_group is in
+          {{ network_connectivity_network_cidr }}, nothing can be tested.
+
+    - name: Run ping check with maximum possible length
+      ansible.builtin.command:
+        argv:
+          - /bin/ping
+          # quiet
+          - -q
+          # do not fragment
+          - -M
+          - do
+          # set source IP
+          - -I
+          - "{{ ip_address }}"
+          # use MTU sized packets
+          - -s
+          - "{{ mtu | int - ip_header_size | int - icmp_header_size | int }}"
+          # send specified packet count
+          - -c
+          - "{{ network_connectivity_ping_count }}"
+          - "{{ item }}"
+      loop: "{{ target_addresses }}"
+      register: ping
+      changed_when: false
+
+    - name: Assert that ping check was successful
+      ansible.builtin.assert:
+        that: item.rc == 0
+        quiet: true
+      loop: "{{ ping.results }}"
+      loop_control:
+        label: "{{ item.stdout }}"

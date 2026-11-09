@@ -1,0 +1,22 @@
+---
+# NOTE: This mirrors the routed fabric OSISM recommends: every node carries
+# its own /32 and /128 on a dummy interface named loopback0, with an MTU of
+# 9000 (network_dummy_interface_mtu of osism.commons.network). The addresses
+# come from the documentation ranges and are reachable only on this node.
+- name: Ensure ping is installed
+  become: true
+  ansible.builtin.package:
+    name: iputils-ping
+    state: present
+
+- name: Ensure dummy interface loopback0 with test addresses
+  become: true
+  ansible.builtin.shell:
+    executable: /bin/bash
+    cmd: |
+      set -euo pipefail
+      ip link show loopback0 >/dev/null 2>&1 || ip link add loopback0 type dummy
+      ip link set loopback0 mtu 9000 up
+      ip address replace {{ network_connectivity_test_ipv4 }}/32 dev loopback0
+      ip -6 address replace {{ network_connectivity_test_ipv6 }}/128 dev loopback0 nodad
+  changed_when: true

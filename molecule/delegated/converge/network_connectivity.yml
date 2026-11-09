@@ -1,17 +1,29 @@
 ---
 # NOTE: The role pings from every host of network_connectivity_group to all
-# the others, using their gathered facts. A second inventory host with a local
-# connection gives this single CI node a peer whose facts are real, so the
-# role runs its actual address selection. Both hosts have the same addresses,
-# which means every ping goes to an address of this node itself.
-- name: Add a peer host on this node
+# the others. The peer is a second inventory host standing for the network
+# namespace molecule-peer that the prepare step set up. Its facts cannot be
+# gathered from inside the namespace (ip netns exec needs to remount /sys,
+# which rootless containers used for local runs do not allow), so it gets the
+# facts of its loopback0 in the shape setup reports them. The facts of this
+# host and every ping are real, and every ping crosses the veth link.
+- name: Add the peer host
   ansible.builtin.add_host:
     name: molecule-peer
     ansible_connection: local
-    ansible_python_interpreter: "{{ ansible_python_interpreter | default(omit) }}"
 
-- name: Gather facts of the peer host
-  ansible.builtin.setup:
+- name: Set the facts of the peer host
+  molecule_facts:
+    facts:
+      loopback0:
+        device: loopback0
+        mtu: 9000
+        ipv4:
+          address: "{{ network_connectivity_test_peer_ipv4 }}"
+          prefix: "32"
+        ipv6:
+          - address: "{{ network_connectivity_test_peer_ipv6 }}"
+            prefix: "128"
+            scope: global
   delegate_to: molecule-peer
   delegate_facts: true
 
@@ -24,14 +36,16 @@
       - molecule-peer
     network_connectivity_network_cidr: 198.51.100.0/24
 
-# NOTE: Without this the test would pass as vacuously as the role does when
-# it finds no address to ping.
+# NOTE: Without the first assertion the test would pass as vacuously as the
+# role does when it finds no address to ping. The ping size has to follow the
+# MTU of the route to the peer, not that of loopback0 (9000), which holds the
+# source address: for IPv4 that of veth-host (1400), for IPv6 that of the
+# route itself (1300).
 - name: Assert that the IPv4 check pinged the peer
   ansible.builtin.assert:
     that:
-      - ping.results | rejectattr('skipped', 'defined') | map(attribute='item') | list == [network_connectivity_test_ipv4]
-      # MTU 9000 of loopback0 minus IP and ICMP headers
-      - ping.results[0].cmd[ping.results[0].cmd.index('-s') + 1] == '8972'
+      - ping.results | rejectattr('skipped', 'defined') | map(attribute='item.item') | list == [network_connectivity_test_peer_ipv4]
+      - ping.results[0].cmd[ping.results[0].cmd.index('-s') + 1] == '1372'
 
 - name: Check IPv6 connectivity
   ansible.builtin.include_role:
@@ -45,9 +59,8 @@
 - name: Assert that the IPv6 check pinged the peer
   ansible.builtin.assert:
     that:
-      - ping.results | rejectattr('skipped', 'defined') | map(attribute='item') | list == [network_connectivity_test_ipv6]
-      # MTU 9000 of loopback0 minus IP and ICMP headers
-      - ping.results[0].cmd[ping.results[0].cmd.index('-s') + 1] == '8952'
+      - ping.results | rejectattr('skipped', 'defined') | map(attribute='item.item') | list == [network_connectivity_test_peer_ipv6]
+      - ping.results[0].cmd[ping.results[0].cmd.index('-s') + 1] == '1252'
 
 # NOTE: No host has an address in this network, so there is nothing to ping.
 # The role has to fail instead of passing without having tested anything.

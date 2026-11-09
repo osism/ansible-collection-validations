@@ -32,21 +32,23 @@
         | list
       }}
     ip_address: "{{ source_addresses | first }}"
-    ip_address_entry: "{{ address_entries | selectattr('address', 'equalto', ip_address) | first }}"
-    mtu: >-
-      {{
-        ansible_facts
-        | dict2items
-        | map(attribute='value')
-        | selectattr(ip_version, 'defined')
-        | selectattr('mtu', 'defined')
-        | selectattr(ip_version, 'contains' if ip_version == 'ipv6' else 'equalto', ip_address_entry)
-        | map(attribute='mtu')
-        | list
-        | first
-      }}
     ip_header_size: "{{ 20 if ip_version == 'ipv4' else 40 }}"
     icmp_header_size: '8'
+    # NOTE: The MTU of the route to a target: the one the route reports (a
+    # locked route MTU or a learned path MTU), otherwise that of the device
+    # the route leaves through. A route to a local address leaves through lo,
+    # whose MTU exceeds the largest possible IP packet.
+    route_mtu: >-
+      {{
+        [
+          (
+            item.stdout | regex_search(' mtu (lock )?([0-9]+)', '\2') | first
+            if item.stdout is search(' mtu (lock )?[0-9]+')
+            else ansible_facts[item.stdout | regex_search(' dev (\S+)', '\1') | first | replace('-', '_')].mtu
+          ) | int,
+          65535
+        ] | min
+      }}
     target_addresses: >-
       {{
         network_connectivity_group
@@ -80,6 +82,23 @@
           No address of the other hosts in network_connectivity_group is in
           {{ network_connectivity_network_cidr }}, nothing can be tested.
 
+    # NOTE: The ping size has to follow the route to the target, not the
+    # interface that holds the source address. On a routed fabric the source
+    # address is on a loopback or dummy interface whose MTU says nothing about
+    # the path, and the kernel rejects a ping that does not fit the route.
+    - name: Find the route to each of the other hosts
+      ansible.builtin.command:
+        argv:
+          - ip
+          - route
+          - get
+          - "{{ item }}"
+          - from
+          - "{{ ip_address }}"
+      loop: "{{ target_addresses }}"
+      register: routes
+      changed_when: false
+
     - name: Run ping check with maximum possible length
       ansible.builtin.command:
         argv:
@@ -92,14 +111,16 @@
           # set source IP
           - -I
           - "{{ ip_address }}"
-          # use MTU sized packets
+          # use packets of the size of the route MTU
           - -s
-          - "{{ mtu | int - ip_header_size | int - icmp_header_size | int }}"
+          - "{{ route_mtu | int - ip_header_size | int - icmp_header_size | int }}"
           # send specified packet count
           - -c
           - "{{ network_connectivity_ping_count }}"
-          - "{{ item }}"
-      loop: "{{ target_addresses }}"
+          - "{{ item.item }}"
+      loop: "{{ routes.results }}"
+      loop_control:
+        label: "{{ item.item }}"
       register: ping
       changed_when: false
 

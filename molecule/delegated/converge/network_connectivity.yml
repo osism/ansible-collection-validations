@@ -10,6 +10,10 @@
   ansible.builtin.add_host:
     name: molecule-peer
     ansible_connection: local
+    molecule_v4_interface: loopback0
+    molecule_v4_address_family: ipv4
+    molecule_v6_interface: loopback0
+    molecule_v6_address_family: ipv6
 
 - name: Set the facts of the peer host
   molecule_facts:
@@ -86,5 +90,55 @@
 - name: Assert that the role failed for lack of addresses
   ansible.builtin.assert:
     that:
-      - "'No address' in network_connectivity_test_empty_msg"
+      - "'has no address' in network_connectivity_test_empty_msg"
     fail_msg: "Expected the role to fail for lack of addresses, got: {{ network_connectivity_test_empty_msg }}"
+
+# NOTE: With network_connectivity_network the role takes each host's address
+# from the interface and address family that the variables of that network
+# name for the host, as kolla-ansible does for api, tunnel and so on.
+- name: Check connectivity by network name
+  ansible.builtin.include_role:
+    name: network_connectivity
+  vars:
+    network_connectivity_group:
+      - "{{ inventory_hostname }}"
+      - molecule-peer
+    network_connectivity_network: "{{ test_network }}"
+  loop:
+    - molecule_v4
+    - molecule_v6
+  loop_control:
+    loop_var: test_network
+
+- name: Assert that the IPv6 check by network name pinged the peer
+  ansible.builtin.assert:
+    that:
+      - ping.results | rejectattr('skipped', 'defined') | map(attribute='item.item') | list == [network_connectivity_test_peer_ipv6]
+      - ping.results[0].cmd[ping.results[0].cmd.index('-s') + 1] == '1252'
+
+# NOTE: A peer without an interface on the network cannot be pinged. With no
+# other host left the role has to fail.
+- name: Check a network that only this host has
+  block:
+    - name: Run the role on a network the peer has no interface on
+      ansible.builtin.include_role:
+        name: network_connectivity
+      vars:
+        network_connectivity_group:
+          - "{{ inventory_hostname }}"
+          - molecule-peer
+        network_connectivity_network: molecule_selfonly
+
+    - name: Record that the role passed
+      ansible.builtin.set_fact:
+        network_connectivity_test_peerless_msg: passed
+  rescue:
+    - name: Record why the role failed
+      ansible.builtin.set_fact:
+        network_connectivity_test_peerless_msg: "{{ ansible_failed_result.msg }}"
+
+- name: Assert that the role failed for lack of peer addresses
+  ansible.builtin.assert:
+    that:
+      - "'None of the other hosts' in network_connectivity_test_peerless_msg"
+    fail_msg: "Expected the role to fail for lack of peer addresses, got: {{ network_connectivity_test_peerless_msg }}"

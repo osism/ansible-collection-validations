@@ -1,4 +1,10 @@
 ---
 network_connectivity_group: all
 network_connectivity_network_cidr: 127.0.0.0/8
+# Name of a network in the kolla-ansible sense, for example api or tunnel. If
+# set, every host's address is the one on its <network>_interface in the
+# address family <network>_address_family, as kolla-ansible chooses it, and
+# network_connectivity_network_cidr is not used. Each host of
+# network_connectivity_group needs gathered facts.
+network_connectivity_network: ""
 network_connectivity_ping_count: 1

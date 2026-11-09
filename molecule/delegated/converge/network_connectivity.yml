@@ -1,0 +1,32 @@
+---
+# NOTE: The role pings from every host of network_connectivity_group to all
+# the others, using their gathered facts. A second inventory host with a local
+# connection gives this single CI node a peer whose facts are real, so the
+# role runs its actual address selection. Both hosts have the same addresses,
+# which means every ping goes to an address of this node itself.
+- name: Add a peer host on this node
+  ansible.builtin.add_host:
+    name: molecule-peer
+    ansible_connection: local
+    ansible_python_interpreter: "{{ ansible_python_interpreter | default(omit) }}"
+
+- name: Gather facts of the peer host
+  ansible.builtin.setup:
+  delegate_to: molecule-peer
+  delegate_facts: true
+
+- name: Check IPv4 connectivity
+  ansible.builtin.include_role:
+    name: network_connectivity
+  vars:
+    network_connectivity_group:
+      - "{{ inventory_hostname }}"
+      - molecule-peer
+    network_connectivity_network_cidr: 198.51.100.0/24
+
+# NOTE: Without this the test would pass as vacuously as the role does when
+# it finds no address to ping.
+- name: Assert that the IPv4 check pinged the peer
+  ansible.builtin.assert:
+    that:
+      - ping.results | rejectattr('skipped', 'defined') | map(attribute='item') | list == [network_connectivity_test_ipv4]

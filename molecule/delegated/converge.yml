@@ -12,6 +12,17 @@
         file: "{{ prepared_vars_path }}/{{ molecule_role }}.yml"
       failed_when: false
 
+    # NOTE: A role whose test needs more than one run of the role, for
+    # example to check that it fails where it has to, brings its own converge
+    # tasks in converge/<role>.yml. All other roles are included once.
+    - name: "Include converge tasks for {{ molecule_role }}"
+      ansible.builtin.include_tasks:
+        file: "{{ converge_tasks }}"
+      when: converge_tasks | length > 0
+
     - name: "Include role {{ molecule_role }}"
       ansible.builtin.include_role:
         name: "{{ molecule_role }}"
+      when: converge_tasks | length == 0
+  vars:
+    converge_tasks: "{{ lookup('ansible.builtin.first_found', files=[molecule_role ~ '.yml'], paths=[playbook_dir ~ '/converge'], skip=true) }}"

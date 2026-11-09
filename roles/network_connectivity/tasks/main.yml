@@ -9,30 +9,30 @@
 
 - name: Check connectivity to the other hosts
   vars:
-    ip_version: >-
-      {{
-        'ipv4'
-        if network_connectivity_network_cidr | ansible.utils.ipv4 | length > 0
-        else (
-          'ipv6'
-          if network_connectivity_network_cidr | ansible.utils.ipv6 | length > 0
-          else
-          None
-        )
-      }}
-    source_addresses: >-
+    ip_version: "ipv{{ network_connectivity_network_cidr | ansible.utils.ipaddr('version') }}"
+    # NOTE: Facts hold one IPv4 address per interface as a dict, but all IPv6
+    # addresses of an interface as a list of dicts. Flattening by one level
+    # gives a list of address dicts in both cases.
+    address_entries: >-
       {{
         ansible_facts
         | dict2items
         | map(attribute='value')
         | selectattr(ip_version, 'defined')
         | map(attribute=ip_version)
+        | flatten(levels=1)
         | selectattr('address', 'defined')
+        | list
+      }}
+    source_addresses: >-
+      {{
+        address_entries
         | map(attribute='address')
         | ansible.utils.ipaddr(network_connectivity_network_cidr)
         | list
       }}
     ip_address: "{{ source_addresses | first }}"
+    ip_address_entry: "{{ address_entries | selectattr('address', 'equalto', ip_address) | first }}"
     mtu: >-
       {{
         ansible_facts
@@ -40,23 +40,12 @@
         | map(attribute='value')
         | selectattr(ip_version, 'defined')
         | selectattr('mtu', 'defined')
-        | selectattr(ip_version + '.address', 'defined')
-        | selectattr(ip_version + '.address', 'equalto', ip_address)
+        | selectattr(ip_version, 'contains' if ip_version == 'ipv6' else 'equalto', ip_address_entry)
         | map(attribute='mtu')
         | list
         | first
       }}
-    ip_header_size: >-
-      {{
-        20
-        if ip_version == 'ipv4'
-        else (
-          40
-          if ip_version == 'ipv6'
-          else
-          None
-        )
-      }}
+    ip_header_size: "{{ 20 if ip_version == 'ipv4' else 40 }}"
     icmp_header_size: '8'
     target_addresses: >-
       {{
@@ -67,6 +56,7 @@
         | map('map', attribute='value')
         | map('selectattr', ip_version, 'defined')
         | map('map', attribute=ip_version)
+        | map('flatten', levels=1)
         | map('selectattr', 'address', 'defined')
         | map('map', attribute='address')
         | map('ansible.utils.ipaddr', network_connectivity_network_cidr)

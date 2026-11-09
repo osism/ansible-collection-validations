@@ -30,6 +30,24 @@
   ansible.builtin.assert:
     that:
       - ping.results | rejectattr('skipped', 'defined') | map(attribute='item') | list == [network_connectivity_test_ipv4]
+      # MTU 9000 of loopback0 minus IP and ICMP headers
+      - ping.results[0].cmd[ping.results[0].cmd.index('-s') + 1] == '8972'
+
+- name: Check IPv6 connectivity
+  ansible.builtin.include_role:
+    name: network_connectivity
+  vars:
+    network_connectivity_group:
+      - "{{ inventory_hostname }}"
+      - molecule-peer
+    network_connectivity_network_cidr: 2001:db8:42::/64
+
+- name: Assert that the IPv6 check pinged the peer
+  ansible.builtin.assert:
+    that:
+      - ping.results | rejectattr('skipped', 'defined') | map(attribute='item') | list == [network_connectivity_test_ipv6]
+      # MTU 9000 of loopback0 minus IP and ICMP headers
+      - ping.results[0].cmd[ping.results[0].cmd.index('-s') + 1] == '8952'
 
 # NOTE: No host has an address in this network, so there is nothing to ping.
 # The role has to fail instead of passing without having tested anything.

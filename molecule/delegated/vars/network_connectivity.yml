@@ -3,3 +3,13 @@ network_connectivity_test_ipv4: 198.51.100.10
 network_connectivity_test_ipv6: 2001:db8:42::10
 network_connectivity_test_peer_ipv4: 198.51.100.20
 network_connectivity_test_peer_ipv6: 2001:db8:42::20
+
+# NOTE: Variables of the networks molecule_v4 and molecule_v6 for the
+# network_connectivity_network tests. molecule_selfonly has an interface on
+# this host only.
+molecule_v4_interface: loopback0
+molecule_v4_address_family: ipv4
+molecule_v6_interface: loopback0
+molecule_v6_address_family: ipv6
+molecule_selfonly_interface: loopback0
+molecule_selfonly_address_family: ipv4

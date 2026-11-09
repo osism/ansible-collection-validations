@@ -6,32 +6,133 @@
 - name: Assert provided network is valid
   ansible.builtin.assert:
     that: network_connectivity_network_cidr | ansible.utils.ipaddr is truthy
+  when: network_connectivity_network | length == 0
+
+# NOTE: With network_connectivity_network every host's address is that of
+# its <network>_interface in the address family <network>_address_family,
+# chosen the way kolla-ansible's kolla_address filter chooses it: for IPv4
+# the primary address of the interface, or its first secondary that is not a
+# loopback address if the primary is one; for IPv6 the first global address
+# that is not a kolla VIP. The kolla variables computed with kolla_address
+# (api_interface_address and so on) cannot be used instead, because they do
+# not evaluate when read through hostvars.
+- name: Find the addresses of all hosts on the network
+  ansible.builtin.set_fact:
+    network_connectivity_host_addresses: >-
+      {{
+        (network_connectivity_host_addresses if ansible_loop.index0 > 0 else {})
+        | combine({item: host_address})
+      }}
+  vars:
+    host_interface: "{{ hostvars[item][network_connectivity_network ~ '_interface'] | default('') }}"
+    host_address_family: "{{ hostvars[item][network_connectivity_network ~ '_address_family'] | default('ipv4') | lower }}"
+    host_interface_facts: "{{ hostvars[item].ansible_facts[host_interface | replace('-', '_')] | default({}) }}"
+    host_ipv4_addresses: >-
+      {{
+        (
+          ([host_interface_facts.ipv4] if host_interface_facts.ipv4 is defined else [])
+          + host_interface_facts.ipv4_secondaries | default([])
+        )
+        | selectattr('address', 'defined')
+        | map(attribute='address')
+        | list
+      }}
+    host_ipv4_address: >-
+      {{
+        host_ipv4_addresses | reject('match', '127\.') | first | default('')
+        if host_ipv4_addresses[:1] | select('match', '127\.') | list | length > 0
+        else host_ipv4_addresses | first | default('')
+      }}
+    host_ipv6_address: >-
+      {{
+        host_interface_facts.ipv6 | default([])
+        | selectattr('scope', 'equalto', 'global')
+        | map(attribute='address')
+        | reject('in', [hostvars[item].kolla_internal_vip_address | default(''), hostvars[item].kolla_external_vip_address | default('')])
+        | first
+        | default('')
+      }}
+    host_address: "{{ host_ipv4_address if host_address_family == 'ipv4' else host_ipv6_address }}"
+  loop: "{{ network_connectivity_group }}"
+  loop_control:
+    extended: true
+  when: network_connectivity_network | length > 0
 
 - name: Check connectivity to the other hosts
   vars:
-    ip_version: "ipv{{ network_connectivity_network_cidr | ansible.utils.ipaddr('version') }}"
-    # NOTE: Facts hold one IPv4 address per interface as a dict, but all IPv6
-    # addresses of an interface as a list of dicts. Flattening by one level
-    # gives a list of address dicts in both cases.
+    # NOTE: Facts hold the primary IPv4 address of an interface as a dict,
+    # further IPv4 addresses as a list of dicts in ipv4_secondaries, and all
+    # IPv6 addresses as a list of dicts. Flattening by one level gives a list
+    # of address dicts in all cases.
     address_entries: >-
       {{
-        ansible_facts
-        | dict2items
-        | map(attribute='value')
-        | selectattr(ip_version, 'defined')
-        | map(attribute=ip_version)
-        | flatten(levels=1)
+        (
+          ansible_facts
+          | dict2items
+          | map(attribute='value')
+          | selectattr('ipv4', 'defined')
+          | map(attribute='ipv4')
+          | list
+          + ansible_facts
+          | dict2items
+          | map(attribute='value')
+          | selectattr('ipv4_secondaries', 'defined')
+          | map(attribute='ipv4_secondaries')
+          | flatten(levels=1)
+          + ansible_facts
+          | dict2items
+          | map(attribute='value')
+          | selectattr('ipv6', 'defined')
+          | map(attribute='ipv6')
+          | flatten(levels=1)
+        )
         | selectattr('address', 'defined')
         | list
       }}
     source_addresses: >-
       {{
-        address_entries
-        | map(attribute='address')
-        | ansible.utils.ipaddr(network_connectivity_network_cidr)
-        | list
+        (
+          [network_connectivity_host_addresses[inventory_hostname]]
+          | reject('equalto', '')
+          | list
+        )
+        if network_connectivity_network | length > 0
+        else (
+          address_entries
+          | map(attribute='address')
+          | ansible.utils.ipaddr(network_connectivity_network_cidr)
+          | list
+        )
+      }}
+    target_addresses: >-
+      {{
+        (
+          network_connectivity_host_addresses
+          | dict2items
+          | rejectattr('key', 'equalto', inventory_hostname)
+          | map(attribute='value')
+          | reject('equalto', '')
+          | list
+        )
+        if network_connectivity_network | length > 0
+        else (
+          network_connectivity_group
+          | difference([inventory_hostname])
+          | map('extract', hostvars, 'ansible_facts')
+          | map('dict2items')
+          | map('map', attribute='value')
+          | map('selectattr', 'ipv' ~ (network_connectivity_network_cidr | ansible.utils.ipaddr('version')), 'defined')
+          | map('map', attribute='ipv' ~ (network_connectivity_network_cidr | ansible.utils.ipaddr('version')))
+          | map('flatten', levels=1)
+          | map('selectattr', 'address', 'defined')
+          | map('map', attribute='address')
+          | map('ansible.utils.ipaddr', network_connectivity_network_cidr)
+          | list
+          | flatten
+        )
       }}
     ip_address: "{{ source_addresses | first }}"
+    ip_version: "ipv{{ ip_address | ansible.utils.ipaddr('version') }}"
     ip_header_size: "{{ 20 if ip_version == 'ipv4' else 40 }}"
     icmp_header_size: '8'
     # NOTE: The MTU of the route to a target: the one the route reports (a
@@ -49,21 +150,11 @@
           65535
         ] | min
       }}
-    target_addresses: >-
+    network_source: >-
       {{
-        network_connectivity_group
-        | difference([inventory_hostname])
-        | map('extract', hostvars, 'ansible_facts')
-        | map('dict2items')
-        | map('map', attribute='value')
-        | map('selectattr', ip_version, 'defined')
-        | map('map', attribute=ip_version)
-        | map('flatten', levels=1)
-        | map('selectattr', 'address', 'defined')
-        | map('map', attribute='address')
-        | map('ansible.utils.ipaddr', network_connectivity_network_cidr)
-        | list
-        | flatten
+        'on network ' ~ network_connectivity_network
+        if network_connectivity_network | length > 0
+        else 'in ' ~ network_connectivity_network_cidr
       }}
   block:
     # NOTE: Without an address to ping the ping loop below is empty and the
@@ -72,15 +163,22 @@
       ansible.builtin.assert:
         that: source_addresses | length > 0
         fail_msg: >-
-          No address of {{ inventory_hostname }} is in
-          {{ network_connectivity_network_cidr }}, nothing can be tested.
+          {{ inventory_hostname }} has no address {{ network_source }},
+          nothing can be tested.
+
+    - name: Assert that the address of this host is on one of its interfaces
+      ansible.builtin.assert:
+        that: address_entries | selectattr('address', 'equalto', ip_address) | list | length > 0
+        fail_msg: >-
+          {{ ip_address }} is not configured on any interface of
+          {{ inventory_hostname }}.
 
     - name: Assert that the other hosts have addresses in the network
       ansible.builtin.assert:
         that: target_addresses | length > 0
         fail_msg: >-
-          No address of the other hosts in network_connectivity_group is in
-          {{ network_connectivity_network_cidr }}, nothing can be tested.
+          None of the other hosts in network_connectivity_group has an
+          address {{ network_source }}, nothing can be tested.
 
     # NOTE: The ping size has to follow the route to the target, not the
     # interface that holds the source address. On a routed fabric the source

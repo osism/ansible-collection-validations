@@ -5,7 +5,7 @@
 
 - name: Assert provided network is valid
   ansible.builtin.assert:
-    that: network_connectivity_network_cidr | ansible.utils.ipaddr
+    that: network_connectivity_network_cidr | ansible.utils.ipaddr is truthy
 
 - name: Run ping check with maximum possible length
   ansible.builtin.command:

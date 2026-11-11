@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 This file was started on March 15, 2022. Changes prior to this date are not included in the CHANGELOG.
 
+## [v0.20261111.0] - 2026-11-11
+
+### Added
+- Test the network_connectivity role with molecule (osism/ansible-collection-validations#292)
+- Add network_connectivity_network to resolve host addresses by network name, as kolla-ansible does for api, tunnel, and so on (osism/ansible-collection-validations#295)
+- Compare the system clocks of the nodes in the chrony role against a common NTP reference (osism/ansible-collection-validations#287)
+- Add a name_resolution role that validates systemd-resolved configuration, upstream nameservers, inventory host and reverse DNS resolution, additional hosts entries, external registries/repositories, and API endpoint resolution, with molecule tests (osism/ansible-collection-validations#286)
+
+### Fixed
+- Make the CIDR assert in network_connectivity boolean so the role no longer fails under ansible-core 2.19 (osism/ansible-collection-validations@a9677ef)
+- Fail the network_connectivity role instead of passing silently when no address can be pinged (osism/ansible-collection-validations@8eb23bd)
+- Fix IPv6 address selection and MTU lookup in the network_connectivity role (osism/ansible-collection-validations#293)
+- Size network_connectivity pings by the route MTU instead of the source interface MTU (osism/ansible-collection-validations#294)
+- Run the publish workflow on Python 3.12 and ansible-core 2.18 so collection releases to Ansible Galaxy succeed again (osism/ansible-collection-validations#297)
+
+### Dependencies
+- pytest 9.1.1 → 9.2.0 (osism/ansible-collection-validations#290)
+- molecule 26.10.0 → 26.11.0 (osism/ansible-collection-validations#291)
+
 ## [v0.20261023.0] - 2026-10-23
 
 ### Added

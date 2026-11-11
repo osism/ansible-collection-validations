@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 This file was started on March 15, 2022. Changes prior to this date are not included in the CHANGELOG.
 
+
+### Changed
+
+- Add role to validate name resolution (osism/ansible-collection-validations#286)
+- Compare the system clocks of the nodes in the chrony role (osism/ansible-collection-validations#287)
+- chore(deps): update dependency pytest to v9.2.0 (osism/ansible-collection-validations#290)
+- chore(deps): update dependency molecule to v26.11.0 (osism/ansible-collection-validations#291)
+- Test the network_connectivity role with molecule (osism/ansible-collection-validations#292)
+- network_connectivity: fix IPv6 networks (osism/ansible-collection-validations#293)
+- network_connectivity: size pings by route MTU (osism/ansible-collection-validations#294)
+- network_connectivity: resolve addresses by network (osism/ansible-collection-validations#295)
+- publish: run on Python 3.12, ansible-core 2.18 (osism/ansible-collection-validations#297)
+- network_connectivity: fail if nothing is pinged (osism/ansible-collection-validations@8eb23bd)
+- network_connectivity: make CIDR assert boolean (osism/ansible-collection-validations@a9677ef)
+
 ## [v0.20261023.0] - 2026-10-23
 
 ### Added

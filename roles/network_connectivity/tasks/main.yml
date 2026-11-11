@@ -135,21 +135,6 @@
     ip_version: "ipv{{ ip_address | ansible.utils.ipaddr('version') }}"
     ip_header_size: "{{ 20 if ip_version == 'ipv4' else 40 }}"
     icmp_header_size: '8'
-    # NOTE: The MTU of the route to a target: the one the route reports (a
-    # locked route MTU or a learned path MTU), otherwise that of the device
-    # the route leaves through. A route to a local address leaves through lo,
-    # whose MTU exceeds the largest possible IP packet.
-    route_mtu: >-
-      {{
-        [
-          (
-            item.stdout | regex_search(' mtu (lock )?([0-9]+)', '\2') | first
-            if item.stdout is search(' mtu (lock )?[0-9]+')
-            else ansible_facts[item.stdout | regex_search(' dev (\S+)', '\1') | first | replace('-', '_')].mtu
-          ) | int,
-          65535
-        ] | min
-      }}
     network_source: >-
       {{
         'on network ' ~ network_connectivity_network
@@ -180,10 +165,10 @@
           None of the other hosts in network_connectivity_group has an
           address {{ network_source }}, nothing can be tested.
 
-    # NOTE: The ping size has to follow the route to the target, not the
-    # interface that holds the source address. On a routed fabric the source
-    # address is on a loopback or dummy interface whose MTU says nothing about
-    # the path, and the kernel rejects a ping that does not fit the route.
+    # NOTE: The ping size follows the configured MTU of the route to the
+    # target, not the MTU of the interface that holds the source address. On
+    # a routed fabric the source address is on a loopback or dummy interface
+    # whose MTU says nothing about the path.
     - name: Find the route to each of the other hosts
       ansible.builtin.command:
         argv:
@@ -197,6 +182,65 @@
       register: routes
       changed_when: false
 
+    # NOTE: The configured MTU of a route is its mtu, locked or not, otherwise
+    # the MTU of the device it leaves through. ip route get also reports a
+    # path MTU the kernel learned from a hop, and then hides the mtu of the
+    # route. A learned path MTU is ignored: a failed ping teaches it to the
+    # kernel, so sizing by it would make a run after a failed one pass.
+    # ip route get fibmatch returns the route without it. A path with an
+    # intentionally smaller hop declares it with mtu on the route. The device
+    # is the one ip route get names, with ECMP the nexthop the ping is hashed
+    # to. A route to a local address leaves through lo, whose MTU exceeds the
+    # largest possible IP packet.
+    - name: Find the configured route to each of the other hosts
+      ansible.builtin.command:
+        argv:
+          - ip
+          - route
+          - get
+          - fibmatch
+          - "{{ item }}"
+          - from
+          - "{{ ip_address }}"
+      loop: "{{ target_addresses }}"
+      register: fib_routes
+      changed_when: false
+
+    - name: Find the MTU of the route to each of the other hosts
+      ansible.builtin.set_fact:
+        network_connectivity_route_mtus: >-
+          {{
+            (network_connectivity_route_mtus if ansible_loop.index0 > 0 else {})
+            | combine({item.0.item: [route_mtu | int, 65535] | min})
+          }}
+      vars:
+        route_dev: >-
+          {{ item.0.stdout | regex_search(' dev (\S+)', '\1') | first }}
+        route_mtu: >-
+          {{
+            item.1.stdout | regex_search(' mtu (lock )?([0-9]+)', '\2') | first
+            if item.1.stdout is search(' mtu (lock )?[0-9]+')
+            else ansible_facts[route_dev | replace('-', '_')].mtu | default(0)
+          }}
+      loop: "{{ routes.results | zip(fib_routes.results) | list }}"
+      loop_control:
+        extended: true
+        label: "{{ item.0.item }}"
+
+    - name: Assert that the MTU of the route to each of the other hosts is known
+      ansible.builtin.assert:
+        that: item.value | int > 0
+        fail_msg: >-
+          The route from {{ ip_address }} to {{ item.key }} leaves through a
+          device without facts, gather the facts of {{ inventory_hostname }}
+          after the device is created.
+        quiet: true
+      loop: "{{ network_connectivity_route_mtus | dict2items }}"
+      loop_control:
+        label: "{{ item.key }}"
+
+    # NOTE: Exit status 1 means that no reply came back, which the tasks
+    # below diagnose. Exit status 2 is an error of ping itself.
     - name: Run ping check with maximum possible length
       ansible.builtin.command:
         argv:
@@ -211,7 +255,7 @@
           - "{{ ip_address }}"
           # use packets of the size of the route MTU
           - -s
-          - "{{ route_mtu | int - ip_header_size | int - icmp_header_size | int }}"
+          - "{{ network_connectivity_route_mtus[item.item] | int - ip_header_size | int - icmp_header_size | int }}"
           # send specified packet count
           - -c
           - "{{ network_connectivity_ping_count }}"
@@ -221,11 +265,75 @@
         label: "{{ item.item }}"
       register: ping
       changed_when: false
+      failed_when: ping.rc > 1
 
-    - name: Assert that ping check was successful
-      ansible.builtin.assert:
-        that: item.rc == 0
-        quiet: true
-      loop: "{{ ping.results }}"
+    # NOTE: A target that did not answer is pinged again with the default
+    # payload of 56 bytes, and its route is read again, which now shows a
+    # path MTU that a hop reported during the ping. Together they tell an
+    # unusable MTU from an unreachable host. Every failing target gets its
+    # own message.
+    - name: Ping the other hosts that did not answer with a minimal packet
+      ansible.builtin.command:
+        argv:
+          - /bin/ping
+          - -q
+          - -M
+          - do
+          - -I
+          - "{{ ip_address }}"
+          - -c
+          - "{{ network_connectivity_ping_count }}"
+          - "{{ item }}"
+      loop: "{{ ping.results | rejectattr('rc', 'equalto', 0) | map(attribute='item.item') | list }}"
+      register: small_ping
+      changed_when: false
+      failed_when: small_ping.rc > 1
+
+    - name: Find the route to the other hosts that did not answer again
+      ansible.builtin.command:
+        argv:
+          - ip
+          - route
+          - get
+          - "{{ item }}"
+          - from
+          - "{{ ip_address }}"
+      loop: "{{ ping.results | rejectattr('rc', 'equalto', 0) | map(attribute='item.item') | list }}"
+      register: routes_after
+      changed_when: false
+
+    - name: Fail for the other hosts that did not answer the MTU-sized ping
+      ansible.builtin.fail:
+        msg: >-
+          {{
+            unreachable_msg
+            if item.0.rc != 0
+            else unusable_msg ~ ' ' ~ (
+              'A hop on the path reported an MTU of ' ~ learned ~ '.'
+              if learned | length > 0
+              else 'No hop reported a smaller MTU, a device on the path drops packets of this size.'
+            )
+          }}
+      vars:
+        target: "{{ item.0.item }}"
+        mtu: "{{ network_connectivity_route_mtus[target] }}"
+        payload: "{{ mtu | int - ip_header_size | int - icmp_header_size | int }}"
+        dev: >-
+          {{ item.1.stdout | regex_search(' dev (\S+)', '\1') | first }}
+        learned: >-
+          {{
+            item.1.stdout | regex_search('expires \S+ mtu ([0-9]+)', '\1') | first
+            if item.1.stdout is search('expires \S+ mtu [0-9]+')
+            else ''
+          }}
+        unusable_msg: >-
+          MTU {{ mtu }} of the route from {{ ip_address }} to {{ target }}
+          through {{ dev }} is not usable: a ping with {{ payload }} bytes and
+          don't fragment is not answered, a ping with 56 bytes is.
+        unreachable_msg: >-
+          {{ target }} is not reachable from {{ ip_address }} through {{ dev }}:
+          neither a ping with {{ payload }} bytes and don't fragment nor a ping
+          with 56 bytes is answered.
+      loop: "{{ small_ping.results | zip(routes_after.results) | list }}"
       loop_control:
-        label: "{{ item.stdout }}"
+        label: "{{ item.0.item }}"

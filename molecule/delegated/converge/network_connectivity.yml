@@ -142,3 +142,166 @@
     that:
       - "'None of the other hosts' in network_connectivity_test_peerless_msg"
     fail_msg: "Expected the role to fail for lack of peer addresses, got: {{ network_connectivity_test_peerless_msg }}"
+
+# NOTE: molecule-far stands for the far host behind the peer and
+# molecule-unreachable for an address that no namespace holds. Like the peer
+# they get the facts of their loopback0.
+- name: Add the far and the unreachable host
+  ansible.builtin.add_host:
+    name: "{{ item }}"
+    ansible_connection: local
+  loop:
+    - molecule-far
+    - molecule-unreachable
+
+- name: Set the facts of the far and the unreachable host
+  molecule_facts:
+    facts:
+      loopback0:
+        device: loopback0
+        mtu: 9000
+        ipv4:
+          address: "{{ item.address }}"
+          prefix: "32"
+  delegate_to: "{{ item.host }}"
+  delegate_facts: true
+  loop:
+    - host: molecule-far
+      address: "{{ network_connectivity_test_far_ipv4 }}"
+    - host: molecule-unreachable
+      address: "{{ network_connectivity_test_unreachable_ipv4 }}"
+  loop_control:
+    label: "{{ item.host }}"
+
+# NOTE: The route to the far host has the MTU of veth-host (1400), the link
+# behind the peer only 1300. The peer reports the smaller MTU, so the role
+# has to fail and name it. The fail task fails per target, so the messages
+# are those of its items.
+- name: Check a hop that reports a smaller MTU
+  block:
+    - name: Run the role towards a host behind a hop with a smaller MTU
+      ansible.builtin.include_role:
+        name: network_connectivity
+      vars:
+        network_connectivity_group:
+          - "{{ inventory_hostname }}"
+          - molecule-far
+        network_connectivity_network_cidr: 198.51.100.0/24
+
+    - name: Record that the role passed
+      ansible.builtin.set_fact:
+        network_connectivity_test_far_msg: passed
+  rescue:
+    - name: Record why the role failed
+      ansible.builtin.set_fact:
+        network_connectivity_test_far_msg: "{{ ansible_failed_result.results | default([ansible_failed_result]) | selectattr('msg', 'defined') | map(attribute='msg') | join(' ') }}"
+
+- name: Assert that the role failed for the hop with a smaller MTU
+  ansible.builtin.assert:
+    that:
+      - "'MTU 1400 of the route from 198.51.100.10 to 198.51.100.30 through veth-host is not usable' in network_connectivity_test_far_msg"
+      - "'A hop on the path reported an MTU of 1300' in network_connectivity_test_far_msg"
+    fail_msg: "Expected the role to fail for the MTU of the route, got: {{ network_connectivity_test_far_msg }}"
+
+# NOTE: The kernel now caches the MTU of 1300 that the peer reported, for
+# about ten minutes. A second run has to size its ping by the configured MTU
+# again and fail the same way, instead of passing with the learned MTU.
+- name: Check a hop that reports a smaller MTU again
+  block:
+    - name: Run the role towards the host behind the hop again
+      ansible.builtin.include_role:
+        name: network_connectivity
+      vars:
+        network_connectivity_group:
+          - "{{ inventory_hostname }}"
+          - molecule-far
+        network_connectivity_network_cidr: 198.51.100.0/24
+
+    - name: Record that the role passed
+      ansible.builtin.set_fact:
+        network_connectivity_test_far_again_msg: passed
+  rescue:
+    - name: Record why the role failed
+      ansible.builtin.set_fact:
+        network_connectivity_test_far_again_msg: "{{ ansible_failed_result.results | default([ansible_failed_result]) | selectattr('msg', 'defined') | map(attribute='msg') | join(' ') }}"
+
+- name: Assert that the role failed again with the configured MTU
+  ansible.builtin.assert:
+    that:
+      - "'MTU 1400 of the route from 198.51.100.10 to 198.51.100.30 through veth-host is not usable' in network_connectivity_test_far_again_msg"
+      - "'A hop on the path reported an MTU of 1300' in network_connectivity_test_far_again_msg"
+      - ping.results[0].cmd[ping.results[0].cmd.index('-s') + 1] == '1372'
+    fail_msg: "Expected the role to fail again with a ping of 1372 bytes, got: {{ network_connectivity_test_far_again_msg }}"
+
+# NOTE: With the peer's end of the link at an MTU of 1300 the peer drops the
+# packets of the size of the route MTU (1400) without a word, while small
+# packets pass.
+- name: Check a link that drops packets of the size of the route MTU
+  block:
+    - name: Lower the MTU of the peer's end of the link
+      become: true
+      ansible.builtin.command: nsenter --net=/run/netns/molecule-peer ip link set veth-peer mtu 1300
+      changed_when: true
+
+    - name: Run the role towards the peer behind the lowered MTU
+      ansible.builtin.include_role:
+        name: network_connectivity
+      vars:
+        network_connectivity_group:
+          - "{{ inventory_hostname }}"
+          - molecule-peer
+        network_connectivity_network_cidr: 198.51.100.0/24
+
+    - name: Record that the role passed
+      ansible.builtin.set_fact:
+        network_connectivity_test_drop_msg: passed
+  rescue:
+    - name: Record why the role failed
+      ansible.builtin.set_fact:
+        network_connectivity_test_drop_msg: "{{ ansible_failed_result.results | default([ansible_failed_result]) | selectattr('msg', 'defined') | map(attribute='msg') | join(' ') }}"
+  always:
+    - name: Restore the MTU of the peer's end of the link
+      become: true
+      ansible.builtin.command: nsenter --net=/run/netns/molecule-peer ip link set veth-peer mtu 1400
+      changed_when: true
+
+- name: Read the link of the peer
+  become: true
+  ansible.builtin.command: nsenter --net=/run/netns/molecule-peer ip -o link show veth-peer
+  register: network_connectivity_test_veth_peer
+  changed_when: false
+
+- name: Assert that the role failed for the dropped packets
+  ansible.builtin.assert:
+    that:
+      - "'MTU 1400 of the route from 198.51.100.10 to 198.51.100.20 through veth-host is not usable' in network_connectivity_test_drop_msg"
+      - "'No hop reported a smaller MTU' in network_connectivity_test_drop_msg"
+      - "' mtu 1400 ' in network_connectivity_test_veth_peer.stdout"
+    fail_msg: "Expected the role to fail for the dropped packets and veth-peer at MTU 1400, got: {{ network_connectivity_test_drop_msg }} / {{ network_connectivity_test_veth_peer.stdout }}"
+
+# NOTE: The peer has no route to the unreachable address, so neither the
+# ping of the size of the route MTU nor a small one is answered.
+- name: Check a host that is not reachable
+  block:
+    - name: Run the role towards a host that is not reachable
+      ansible.builtin.include_role:
+        name: network_connectivity
+      vars:
+        network_connectivity_group:
+          - "{{ inventory_hostname }}"
+          - molecule-unreachable
+        network_connectivity_network_cidr: 198.51.100.0/24
+
+    - name: Record that the role passed
+      ansible.builtin.set_fact:
+        network_connectivity_test_unreachable_msg: passed
+  rescue:
+    - name: Record why the role failed
+      ansible.builtin.set_fact:
+        network_connectivity_test_unreachable_msg: "{{ ansible_failed_result.results | default([ansible_failed_result]) | selectattr('msg', 'defined') | map(attribute='msg') | join(' ') }}"
+
+- name: Assert that the role failed for the unreachable host
+  ansible.builtin.assert:
+    that:
+      - "'198.51.100.40 is not reachable from 198.51.100.10 through veth-host' in network_connectivity_test_unreachable_msg"
+    fail_msg: "Expected the role to fail for the unreachable host, got: {{ network_connectivity_test_unreachable_msg }}"

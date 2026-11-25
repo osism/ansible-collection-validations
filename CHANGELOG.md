@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 This file was started on March 15, 2022. Changes prior to this date are not included in the CHANGELOG.
 
+## [v0.20261125.0] - 2026-11-25
+
+### Added
+- Document the network_connectivity role, including MTU selection and failure messages (osism/ansible-collection-validations#298)
+
+### Fixed
+- Fix network_connectivity to size pings by the configured route MTU instead of a cached path MTU, avoiding false passes after a hop reports a smaller MTU (osism/ansible-collection-validations#298)
+
 ## [v0.20261111.0] - 2026-11-11
 
 ### Added
